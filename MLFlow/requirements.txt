@@ -1,3 +1,5 @@
 mlflow 
 scikit-learn 
+xgboost
+numpy
 pandas
