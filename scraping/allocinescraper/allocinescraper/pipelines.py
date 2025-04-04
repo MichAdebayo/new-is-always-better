@@ -7,7 +7,12 @@
 # useful for handling different item types with a single interface
 from itemadapter import ItemAdapter
 
-
-class AllocinescraperPipeline:
+class AllocineScraperPipeline:
     def process_item(self, item, spider):
+        # Iterate over each field in the item and clean string data
+        for field, value in item.items():
+            if isinstance(value, str):
+                item[field] = value.strip()
+            elif isinstance(value, list):
+                item[field] = [v.strip() for v in value if isinstance(v, str)]
         return item
