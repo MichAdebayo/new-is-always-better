@@ -8,14 +8,29 @@ import scrapy
 class AllocinescraperItem(scrapy.Item):
     film_title = scrapy.Field()
     film_url = scrapy.Field()
+    film_image_url = scrapy.Field()
     release_date = scrapy.Field()
     duration = scrapy.Field()
+    age_classification = scrapy.Field()
     associated_genres = scrapy.Field()
-    producer = scrapy.Field()
+    producers = scrapy.Field()
+    director = scrapy.Field()
     top_stars = scrapy.Field()
-    press_review = scrapy.Field()
-    viewer_review = scrapy.Field()
+    press_rating = scrapy.Field()
+    press_critics_count = scrapy.Field()
+    viewer_rating = scrapy.Field()
+    viewer_notes_count = scrapy.Field()
+    viewer_critics_count = scrapy.Field()
     synopsis = scrapy.Field()
+
+    languages = scrapy.Field()
+    budget = scrapy.Field()
+    distributor =scrapy.Field()
+    country_source = scrapy.Field()
+    year_of_production = scrapy.Field()
+    film_nationality =  scrapy.Field()
+    filming_secrets = scrapy.Field()
+    
     
     
     #associated_genres_urls =  scrapy.Field()
@@ -28,7 +43,6 @@ class AllocinescraperItem(scrapy.Item):
 #     # 
 #     # distributor = scrapy.Field()
 #     # country_source = scrapy.Field()
-#     # year_of_production = scrapy.Field()
 #     # entrances_france = scrapy.Field()
 #     # entrances_france_week = scrapy.Field()
 #     # cumul_france = scrapy.Field()

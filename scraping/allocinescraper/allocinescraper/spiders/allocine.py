@@ -1,90 +1,174 @@
 import scrapy
 from scrapy_splash import SplashRequest
 from allocinescraper.items import AllocinescraperItem
+from scrapy.spiders import CrawlSpider, Rule
+from scrapy.linkextractors import LinkExtractor
+import re
 
-class AllocineSpider(scrapy.Spider):
+class AllocineSpider(CrawlSpider):
     name = "allocine"
-    custom_settings = {
-        'USER_AGENT': 'Mozilla/5.0 (iPad; CPU OS 12_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148',
-        'DOWNLOAD_DELAY': 3,  # Add a download delay to be polite
-        'AUTOTHROTTLE_ENABLED': True, # Enable autothrottle
-        'HTTPCACHE_ENABLED': True # Enable HTTP caching
-    }
     allowed_domains = ["allocine.fr"]
     start_urls = ["https://www.allocine.fr/films/"]
-    max_films = None 
-
-    def __init__(self, *args, **kwargs):
-        super(AllocineSpider, self).__init__(*args, **kwargs)
-        if hasattr(self, 'max_films'):
-            try:
-                self.max_films = int(self.max_films)
-            except (ValueError, TypeError):
-                self.max_films = None
     
-    def parse_page(self, response):
-        films = response.css('.gd-col-middle ul li') 
-        scrapped_films = 0
+    custom_settings = {
+        'USER_AGENT': 'Mozilla/5.0 (iPad; CPU OS 12_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148',
+        'DOWNLOAD_DELAY': 3,  # Add delay to be polite
+        'AUTOTHROTTLE_ENABLED': True,
+        'HTTPCACHE_ENABLED': True
+    }
+    
+    max_pages = 1  # Limit number of pages to scrape
+    pages_scraped = 0  # Counter to track scraped pages
 
-        for film in films:
-            if self.max_films and scrapped_films >= self.max_films:
-                self.logger.info('Reached the maximum number of films to scrape.')
-                break  
+    rules = (
+        Rule(LinkExtractor(restrict_css='.pagination a'), follow=True, process_request='limit_pages'),
+        Rule(LinkExtractor(restrict_css='.meta-title-link'), callback='parse_film'),
+    )
 
-            item = AllocinescraperItem()
-            if title := film.css('h2 a::text').get():
-                item['film_title'] = title.strip()
-                item['film_url'] = 'https://www.allocine.fr'+film.css('h2 a::attr(href)').get()
-                item['release_date'] = film.css('.date::text').get()
-                item['duration'] = film.css('div.meta-body-item.meta-body-info *::text').getall()[4].strip()
-                item['associated_genres'] = film.css('.meta-body-info span.dark-grey-link::text').getall()
-                item['producer'] = film.css('div.meta-body-item.meta-body-direction span.dark-grey-link::text').getall()
-                item['top_stars'] = film.css('.meta-body-actor a.dark-grey-link::text').getall()
-                reviews = film.css('.stareval-note::text').getall()
-                item['press_review'] = reviews[0].strip() if len(reviews) > 0 and reviews[0].strip() != '--' else None
-                item['viewer_review'] = reviews[1].strip() if len(reviews) > 1 and reviews[1].strip() != '--' else None
-                
-                scrapped_films += 1
-                yield SplashRequest(
-                    response.urljoin(item['film_url']),
-                    self.parse_film,
-                    args={'wait': 2},
-                    meta={'item': item}
-                )
-            else:
-                self.logger.warning("Film title not found in the response data.")
-
-        if next_page := response.css('.pagination a::attr(href)').get():
-            yield response.follow(next_page,
-                self.parse_page,)
-
+    def limit_pages(self, request, *args):
+        """ Stop following pagination links after max_pages """
+        if self.pages_scraped >= self.max_pages:
+            self.logger.info(f'Stopping after {self.max_pages} pages.')
+            return None  # Stop following more pages
+        self.pages_scraped += 1
+        return request
+    
     def parse_film(self, response):
-        principal_item = response.meta.get('item')
-        if not principal_item:
-            self.logger.error("No item found in response meta.")
-            return
+        item = AllocinescraperItem()
+        item['film_title'] = response.css('div.titlebar-title::text').get('').strip()
+        item['film_url'] = response.url
+        item['film_image_url'] = response.css('img.thumbnail-img::attr(src)').get() or ""     
 
-        if principal_item['film_url']: 
-            self.process_film(principal_item, response)
-            yield principal_item
+        synopsis = response.css('div.content-txt p.bo-p::text').get() or response.css('div.content-txt::text').get()
+        item['synopsis'] = synopsis.strip() if synopsis else ""
 
-    def process_film(self, principal_item, response):
-        block_position = response.css('.gd-col-left')
-        principal_item['synopsis'] = block_position.css('div.synopsis p::text').getall()
-        principal_item['synopsis'] = [text.strip() for text in principal_item['synopsis'] if text.strip()]
+        classification = response.css('div.certificate span.certificate-text::text').get()
+        item['age_classification'] = classification.strip() if classification else ""
 
-        # principal_item['synopsis'] = ' '.join([text.strip() for text in principal_item['synopsis'] if text.strip()]) if principal_item['synopsis'] else None
+        # Meta block
+        meta = response.css('div.meta-body')
+
+        item['release_date'] = meta.css('span.date::text').get()
+
+        duration = meta.css('.meta-body-info::text').re_first(r'\d+h\s?\d*min')
+        item['duration'] = duration
+
+        producer_raw = meta.css('.meta-body-direction span::text').getall()
+        producer_filter = [p.strip() for p in producer_raw if p.strip().lower() not in ["par", "de"]]
+        item['producers'] = list(dict.fromkeys(producer_filter))
+
+        item['director'] = meta.css('.meta-body-direction span.dark-grey-link::text').get().strip()
+
+        actors = meta.css('.meta-body-actor a::text').getall()
+        extra_actors = meta.css('.meta-body-actor span.dark-grey-link::text').getall()
+        item['top_stars'] = [a.strip() for a in actors + extra_actors if a.strip()]
+
+        if press_rating_raw := response.css(
+            'span.stareval-note::text'
+        ).get():
+            item['press_rating'] = float(press_rating_raw.replace(',', '.').strip())
+
+        if viewer_rating := response.css(
+            'div.rating-mdl.n40.stareval-stars + span.stareval-note::text'
+            ).get():
+            viewer_rating = float(viewer_rating.replace(',', '.').strip())
+            item['viewer_rating'] = viewer_rating
+
+        # Technical details
+        #section = response.xpath('//section[contains(@class, "section ovw ovw-technical")]')
+
+        languages = response.xpath('//div[contains(@class, "item")][.//span[contains(@class, "what") and contains(text(), "Langues")]]//span[contains(@class, "that")]/text()').get()
+        item['languages'] = languages.strip() if languages else ""
+
+        # distributor= response.xpath('//span[contains(text(), "Distributeur")]/following-sibling::a/text()').get()
+        
+        # Check the HTML content structure
+        section = response.xpath('//section[contains(@class, "section ovw ovw-technical")]')
+
+        distributor = response.xpath('//div[contains(@class, "item")][.//span[contains(@class, "what") and contains(text(), "Distributeur")]]//span[contains(@class, "blue-link")]/text()').get()
+        item['distributor'] = distributor.strip() if distributor else ""
+
+        item['year_of_production'] = response.xpath('//div[contains(@class, "item")][.//span[contains(@class, "what") and contains(text(), "Année de production")]]//span[contains(@class, "that")]/text()').get()
+
+        item['film_nationality'] = response.xpath('//div[contains(@class, "item")][.//span[contains(@class, "what") and contains(text(), "Nationalités")]]//span[contains(@class, "nationality")]/text()').getall()
+
+
+# # Page Box Office
+#         box_office_link = response.xpath('//a[contains(text(), "Box Office") or contains(@title, "Box Office")]/@href').get()
+        
+#         if box_office_link:
+#         # Suivre le lien vers la page de box office
+#             box_office_url = response.urljoin(box_office_link)
+#             self.log(f"Suivre le lien box office: {box_office_url}")
+        
+#         # Passer l'objet item actuel à la fonction de callback pour continuer à le remplir
+#             yield scrapy.Request(
+#                 box_office_url, 
+#                 self.parse_box_office_page, 
+#                 meta={'item': item}
+#             )
+#         else:
+#         # Si pas de lien box office, retourner l'item tel quel
+#             self.log(f"Pas de lien box office trouvé pour {item['titre']}")
+            
+        # budget = response.xpath('//div[contains(text(), "Budget")]/following-sibling::div/text()').get()
+        # item['budget'] = budget.strip() if budget else ""
+
+        # genres = meta.css('.meta-body-info span.dark-grey-link::text').getall()
+        # item['associated_genres'] = [g.strip() for g in genres if g.strip()]
+
+        # if press_critics_text := response.css(
+        #     'span.stareval-review.light::text'
+        # ).get():
+        #     item['press_critics_count'] = int(press_critics_text.strip().split()[0])
+
+        # # Select the viewer rating block (div that has n40)
+        # viewer_block = response.xpath('//div[contains(@class, "rating-item")][.//div[contains(@class, "rating-mdl") and contains(@class, "n40")]]')
+        # print(viewer_block.get())
+
+        # if viewer_reviews_text := viewer_block.xpath(
+        #     './/span[contains(@class, "stareval-review light")]/text()'
+        # ).get():
+        #     viewer_reviews_text = viewer_reviews_text.replace('\xa0', ' ').strip()
+
+        #     # Debugging: Check cleaned review text
+        #     print(f"Cleaned Review Text: {viewer_reviews_text}")
+
+        #     # Use a more flexible regex pattern to match 'notes' and 'critiques' numbers
+        #     matches = re.findall(r'(\d{1,5})\s+notes,\s+(\d{1,5})\s+critiques', viewer_reviews_text)
+
+        #     # Debugging: Check what the matches look like
+        #     print(f"Extracted Matches: {matches}")
+
+        #     # Initialize variables for notes and critiques counts
+        #     viewer_notes_count = 0
+        #     viewer_critics_count = 0
+
+        #     # Assign values based on the extracted matches
+        #     for match in matches:
+        #         notes, critiques = match
+        #         viewer_notes_count = int(notes)
+        #         viewer_critics_count = int(critiques)
+
+        #         # Assign values to the item
+        #         item['viewer_notes_count'] = viewer_notes_count
+        #         item['viewer_critics_count'] = viewer_critics_count
+
+        # else:
+        #     item['viewer_notes_count'] = 0
+        #     item['viewer_critics_count'] = 0
+
+
+        yield item
+
+
+
         # principal_item['distributor'] = response.css('div.meta-body-item.meta-body-info a::text').get()
         # principal_item['country_source'] = response.css('div.meta-body-item.meta-body-info span.dark-grey-link::text').get()
         # principal_item['year_of_production'] = response.css('div.meta-body-item.meta-body-info span::text').get()
         # principal_item['entrances_france'] = response.css('div.meta-body-item.meta-body-info span::text').getall()[1]
 
-           
-
-        
-
-
-
+    
         # principal_item['entrances_france_week'] = response.css('div.meta-body-item.meta-body-info span::text').getall()[2]
         # principal_item['cumul_france'] = response.css('div.meta-body-item.meta-body-info span::text').getall()[3]
         # principal_item['entrances_us'] = response.css('div.meta-body-item.meta-body-info span::text').getall()[4]
@@ -130,107 +214,8 @@ class AllocineSpider(scrapy.Spider):
 
 
     #         self.logger.info(f"Scraped film: {item['film_title']}")
-    #         yield item
-
-        # for film in movie_blocks:
-        #     item = AllocinescraperItem(principal_item)
-        #     item['film_title'] = film.css('h2 a::text').get()
-        #     item['release_date'] = film.css('span.date::text').get()
-        #     duration_info = film.css('div.meta-body-item.meta-body-info::text').getall()
-        #     item['duration'] = duration_info[2].strip() if len(duration_info) > 2 else None
-        #     item['associated_genres'] = film.css('div.meta-body-item.meta-body-info span.dark-grey-link::text').getall()
-        #     item['producer'] = film.css('.meta-body-direction span.dark-grey-link::text').getall()
-        #     item['top_stars'] = film.css('div.meta-body-item.meta-body-actor span.dark-grey-link::text').getall()
-        #     reviews = film.css('div.rating-holder span.stareval-note::text').getall()
-        #     item['press_review'] = reviews[0] if reviews else None
-        #     item['viewer_review'] = reviews[1] if len(reviews) > 1 else None
-        #     self.logger.info(f"Scraped film: {item['film_title']}")
-        #     yield item
-
-
-# class AllocineSpider(scrapy.Spider):
-#     name = "allocine"
-#     allowed_domains = ["allocine.fr"]
-#     start_urls = ["https://www.allocine.fr/films/"]
-
-#     def start_requests(self):
-#         # Using SplashRequest for JavaScript-rendered pages
-#         for url in self.start_urls:
-#             yield SplashRequest(url, self.parse, args={'wait': 2})
-    
-#     def parse(self, response):
-#         """
-#         Parse the main films page to extract principal genres and their links.
-#         """
-#         genres = response.css('.filter-entity-word li a')
-#         for genre in genres:
-#             item = AllocinescraperItem()
-#             item['principal_genre'] = genre.css('::text').get()
-#             genre_link = genre.css('::attr(href)').get()
-#             if genre_link and "/films/genre-" in genre_link:
-#                 item['genre_link'] = response.urljoin(genre_link)
-#                 yield SplashRequest(
-#                     item['genre_link'],
-#                     self.parse_genre,
-#                     args={'wait': 2},
-#                     meta={'item': item}
-#                 )
-
-#     def parse_genre(self, response):
-#         genre_name = response.css('h1.item::text').get().strip()
-#         movie_titles = response.css('.gd-col-middle h2 a::text').getall()
-#         item = {
-#             'genre': genre_name,
-#             'movies': movie_titles}
-#         print("Yielding item:", item)
-#         yield item
-        
-    # def parse_genre(self, response):
-    #     """
-    #     Parse a genre page to extract films and follow pagination.
-    #     """
-    #     principal_item = response.meta.get('item')
-    #     # Select attributes from film block 
-    #     block_position = response.css('.gd-col-middle')
-    #     for film in block_position:
-    #         item = AllocinescraperItem()
-    #         item.update(principal_item)  # inherit principal genre info
-    #         item['film_title'] = film.css('li h2 a::text').get()
-    #         film_url = film.css('h2 a::attr(href)').get()
-    #         item['release_date'] = film.css('li span.date::text').get()
-    #         item['duration'] = film.css('li div.meta-body-item.meta-body-info::text').get()[2].strip()
-    #         item['associated_genres'] = film.css('div.meta-body-item.meta-body-info span.dark-grey-link::text').getall()
-    #         item['producer'] = film.css('li .meta-body-direction span.dark-grey-link::text').getall()
-    #         item['top_stars'] = film.css('div.meta-body-item.meta-body-actor span.dark-grey-link::text').getall()
-    #         item['press_review'] = film.css('li div.rating-holder.rating-holder span.stareval-note::text').get()[0]
-    #         item['viewer_review'] = film.css('li div.rating-holder.rating-holder span.stareval-note::text').get()[1]
-
-            # if film_url:
-            #     yield SplashRequest(
-            #         response.urljoin(film_url),
-            #         self.parse_film,
-            #         args={'wait': 2},
-            #         meta={'item': item}
-            #     )
-            # else:
-            # yield item
-
-        # if next_page := response.css('a.pagination-next::attr(href)').get():
-        #     yield SplashRequest(
-        #         response.urljoin(next_page),
-        #         self.parse_genre,
-        #         args={'wait': 2},
-        #         meta={'item': principal_item}
-        #     )
-
-    # def parse_film(self, response):
-    #     """
-    #     Parse the film detail page to extract additional information.
-    #     """
-    #     item = response.meta.get('item')
 
     #     item['producer_age'] = response.css('div.producer-age::text').get()
-    #     item['synopsis'] = response.css('div.synopsis p::text').get()
     #     item['distributor'] = response.css('div.distributor a::text').get()
     #     item['country_source'] = response.css('div.country-source::text').get()
     #     item['year_of_production'] = response.css('div.production-year::text').get()
@@ -240,13 +225,5 @@ class AllocineSpider(scrapy.Spider):
     #     item['entrances_us'] = response.css('div.entrances-us::text').get()
     #     item['entrances_week'] = response.css('div.entrances-week::text').get()
     #     item['cumul_us'] = response.css('div.cumul-us::text').get()
-
-    #     yield item
-
-
-# response.css('.filter-entity-word li a::text').getall() - list of genres.
-# response.css('.filter-entity-word li a::attr(href)').getall() - href of genres
-
-
 
 
