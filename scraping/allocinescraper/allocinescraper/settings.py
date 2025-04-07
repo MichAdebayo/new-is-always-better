@@ -111,5 +111,7 @@ FEED_EXPORT_FIELDS = ['film_title', 'film_url', 'film_image_url' , 'release_date
                       'duration', 'age_classification', 'associated_genres',
                       'producers', 'director', 'top_stars', 'press_rating', 
                       'press_critics_count', 'viewer_rating', 'viewer_notes_count', 'viewer_critics_count', 
-                      'languages', 'budget', 'distributor', 'year_of_production', 'film_nationality', 'filming_secrets', 'synopsis', 
+                      'languages', 'budget', 'distributor', 'year_of_production', 
+                      'film_nationality', 'filming_secrets', 'color', 'fr_entry_week',
+                      'fr_entries', 'synopsis', 
 ]

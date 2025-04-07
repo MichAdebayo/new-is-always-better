@@ -4,6 +4,7 @@ from allocinescraper.items import AllocinescraperItem
 from scrapy.spiders import CrawlSpider, Rule
 from scrapy.linkextractors import LinkExtractor
 import re
+from lxml import html
 
 class AllocineSpider(CrawlSpider):
     name = "allocine"
@@ -74,16 +75,11 @@ class AllocineSpider(CrawlSpider):
             viewer_rating = float(viewer_rating.replace(',', '.').strip())
             item['viewer_rating'] = viewer_rating
 
-        # Technical details
-        #section = response.xpath('//section[contains(@class, "section ovw ovw-technical")]')
+        # Film Technical details
+        section = response.xpath('//section[contains(@class, "section ovw ovw-technical")]')
 
         languages = response.xpath('//div[contains(@class, "item")][.//span[contains(@class, "what") and contains(text(), "Langues")]]//span[contains(@class, "that")]/text()').get()
         item['languages'] = languages.strip() if languages else ""
-
-        # distributor= response.xpath('//span[contains(text(), "Distributeur")]/following-sibling::a/text()').get()
-        
-        # Check the HTML content structure
-        section = response.xpath('//section[contains(@class, "section ovw ovw-technical")]')
 
         distributor = response.xpath('//div[contains(@class, "item")][.//span[contains(@class, "what") and contains(text(), "Distributeur")]]//span[contains(@class, "blue-link")]/text()').get()
         item['distributor'] = distributor.strip() if distributor else ""
@@ -92,6 +88,24 @@ class AllocineSpider(CrawlSpider):
 
         item['film_nationality'] = response.xpath('//div[contains(@class, "item")][.//span[contains(@class, "what") and contains(text(), "Nationalités")]]//span[contains(@class, "nationality")]/text()').getall()
 
+        item['filming_secrets'] = response.xpath('//div[contains(@class, "item")][.//span[contains(@class, "what") and contains(text(), "Secrets de tournage")]]//span[contains(@class, "that")]/text()').get()
+
+        item['color'] = response.xpath('//div[contains(@class, "item")][.//span[contains(@class, "what") and contains(text(), "Couleur")]]//span[contains(@class, "that")]/text()').get()
+
+
+        # Film Box Office details
+        item['fr_entry_week'] = response.css("td.responsive-table-column.second-col.col-bg::text").get().strip()
+        # item['fr_entry_week'] = response.xpath('//h2[contains(@class, "titlebar-title") and contains(text(), "Box Office France")]/following-sibling::table[1]//tbody/tr/td[@data-heading="Semaine"]/text()').get()
+        # item['fr_entries'] = response.xpath('//div[contains(@class, "gd-col-left")]//section[contains(@class, "section")]//table[contains(@class, "box-office-table")]//tr[contains(@class, "responsive-table-row")]/td[2]/text()').get()
+        # item['fr_cumul'] = response.xpath('//div[contains(@class, "gd-col-left")]//section[contains(@class, "section")]//table[contains(@class, "box-office-table")]//tr[contains(@class, "responsive-table-row")]/td[3]/text()').get()
+
+
+
+
+
+        #item['fr_entries'] = france_section.xpath('./td[2]//text()').get(default='').strip()
+        #item['fr_entry_week'] = france_section.xpath('./td[1]//text()').get(default='').strip()
+        # fr_cumul = france_data.xpath('.//td[3]/text()').get().strip()
 
 # # Page Box Office
 #         box_office_link = response.xpath('//a[contains(text(), "Box Office") or contains(@title, "Box Office")]/@href').get()
@@ -161,69 +175,8 @@ class AllocineSpider(CrawlSpider):
 
         yield item
 
+    # self.logger.warning("Missing genre name or link in one of the items."
+    # self.logger.info(f"Scraped film: {item['film_title']}")
 
-
-        # principal_item['distributor'] = response.css('div.meta-body-item.meta-body-info a::text').get()
-        # principal_item['country_source'] = response.css('div.meta-body-item.meta-body-info span.dark-grey-link::text').get()
-        # principal_item['year_of_production'] = response.css('div.meta-body-item.meta-body-info span::text').get()
-        # principal_item['entrances_france'] = response.css('div.meta-body-item.meta-body-info span::text').getall()[1]
-
-    
-        # principal_item['entrances_france_week'] = response.css('div.meta-body-item.meta-body-info span::text').getall()[2]
-        # principal_item['cumul_france'] = response.css('div.meta-body-item.meta-body-info span::text').getall()[3]
-        # principal_item['entrances_us'] = response.css('div.meta-body-item.meta-body-info span::text').getall()[4]
-        # principal_item['entrances_week'] = response.css('div.meta-body-item.meta-body-info span::text').getall()[5]
-        # principal_item['cumul_us'] = response.css('div.meta-body-item.meta-body-info span::text').getall()[6]
-        # principal_item['producer_age'] = response.css('div.meta-body-item.meta-body-info span::text').getall()[7]
-        # principal_item['associated_genres_urls'] = response.css('div.meta-body-item.meta-body-info a::attr(href)').getall()
-        # principal_item['associated_genres_urls'] = [response.urljoin(url) for url in principal_item['associated_genres_urls']]
-        # principal_item['associated_genres_urls'] = [url for url in principal_item['associated_genres_urls'] if url and "/films/genre-" in url]
-        # principal_item['associated_genres_urls'] = list(set(principal_item['associated_genres_urls']))
-
-
-
-    # def parse(self, response):
-    #     genres = response.css('.filter-entity-word li a')
-    #     if not genres:
-    #         self.logger.error("No genres found using selector '.filter-entity-word li a'")
-    #     else:
-    #         self.logger.info(f"Found {len(genres)} genres")
-        
-    #     count = 0
-    #     for genre in genres:
-    #         if self.max_films and count >= int(self.max_films):
-    #             self.logger.info('Reached the maximum number of films to scrape.')
-    #             return
-    #         principal_genre = genre.css('::text').get()
-    #         genre_link = genre.css('::attr(href)').get()
-    #         if principal_genre and genre_link:
-    #             item = AllocinescraperItem()
-    #             item['principal_genre'] = principal_genre.strip()
-    #             item['genre_link'] = response.urljoin(genre_link.strip())
-    #             self.logger.info(f"Extracted genre: {item['principal_genre']} - {item['genre_link']}")
-    #             yield SplashRequest(
-    #                 item['genre_link'],
-    #                 self.parse_genre,
-    #                 args={'wait': 2},
-    #                 meta={'item': item}
-    #             )
-    #             count += 1
-    #         else:
-    #             self.logger.warning("Missing genre name or link in one of the items.")
-
-
-
-    #         self.logger.info(f"Scraped film: {item['film_title']}")
-
-    #     item['producer_age'] = response.css('div.producer-age::text').get()
-    #     item['distributor'] = response.css('div.distributor a::text').get()
-    #     item['country_source'] = response.css('div.country-source::text').get()
-    #     item['year_of_production'] = response.css('div.production-year::text').get()
-    #     item['entrances_france'] = response.css('div.entrances-france::text').get()
-    #     item['entrances_france_week'] = response.css('div.entrances-france-week::text').get()
-    #     item['cumul_france'] = response.css('div.cumul-france::text').get()
-    #     item['entrances_us'] = response.css('div.entrances-us::text').get()
-    #     item['entrances_week'] = response.css('div.entrances-week::text').get()
-    #     item['cumul_us'] = response.css('div.cumul-us::text').get()
 
 

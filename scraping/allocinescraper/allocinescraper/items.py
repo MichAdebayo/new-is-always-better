@@ -30,6 +30,9 @@ class AllocinescraperItem(scrapy.Item):
     year_of_production = scrapy.Field()
     film_nationality =  scrapy.Field()
     filming_secrets = scrapy.Field()
+    color = scrapy.Field()
+    fr_entries = scrapy.Field()
+    fr_entry_week = scrapy.Field()
     
     
     
@@ -40,11 +43,6 @@ class AllocinescraperItem(scrapy.Item):
 #     principal_genre = scrapy.Field()
 #     genre_link =  scrapy.Field()
 #     # producer_age = scrapy.Field()
-#     # 
-#     # distributor = scrapy.Field()
-#     # country_source = scrapy.Field()
-#     # entrances_france = scrapy.Field()
-#     # entrances_france_week = scrapy.Field()
 #     # cumul_france = scrapy.Field()
 #     # entrances_us = scrapy.Field()
 #     # entrances_week = scrapy.Field()
