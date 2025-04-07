@@ -1,13 +1,12 @@
 import scrapy
 import re
-from urllib.parse import urljoin
 
 class JpboxOfficeSpider(scrapy.Spider):
     name = "jpbox_office"
     allowed_domains = ["jpbox-office.com"]
     
-    # Maximum de films à récupérer
-    max_films = 10
+    # Maximum de films à récupérer par genre
+    max_films_per_genre = 1500
     
     # Liste pour éviter les doublons
     visited_films = set()
@@ -15,8 +14,9 @@ class JpboxOfficeSpider(scrapy.Spider):
     # Paramètres pour éviter d'être bloqué
     custom_settings = {
         'USER_AGENT': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/98.0.4758.102 Safari/537.36',
-        'DOWNLOAD_DELAY': 2,
+        'DOWNLOAD_DELAY': 3,  # Augmenté à 3 secondes pour éviter d'être bloqué
         'RANDOMIZE_DOWNLOAD_DELAY': True,
+        'CONCURRENT_REQUESTS_PER_DOMAIN': 2,  # Limiter les requêtes simultanées
         'DEFAULT_REQUEST_HEADERS': {
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
             'Accept-Language': 'fr,fr-FR;q=0.9,en;q=0.8,en-US;q=0.7',
@@ -26,9 +26,48 @@ class JpboxOfficeSpider(scrapy.Spider):
     }
     
     def start_requests(self):
-        # URL pour le genre Aventure-Action (idgenre=3) pour la période 2020-2029
-        url = "https://www.jpbox-office.com/fichgenres.php?idgenre=3&year=2020&year2=2029&view=25"
-        yield scrapy.Request(url, self.parse_films_list, meta={'genre': 'Aventure-Action'})
+        # URL pour la page des genres
+        url = "https://www.jpbox-office.com/v9_genres.php"
+        yield scrapy.Request(url, self.parse_genres)
+    
+    def parse_genres(self, response):
+        """Extrait la liste des genres et navigue vers chaque page de genre"""
+        self.logger.info(f"Extraction des genres depuis {response.url}")
+        
+        # Extraire tous les liens de genre
+        genres_links = response.xpath('//table[@class="tablesmall tablesmall3"]//td[@class="col_poster_titre"]/h3/a')
+        
+        self.logger.info(f"Nombre de genres trouvés : {len(genres_links)}")
+        
+        # Limiter à 5 genres pour les tests
+        max_genres = 66
+        count = 0
+        
+        # Pour chaque genre, extraire l'URL et le nom
+        for genre_link in genres_links:
+            if count >= max_genres:
+                break
+                
+            genre_url = response.urljoin(genre_link.xpath('@href').get())
+            genre_name = genre_link.xpath('text()').get().strip()
+            
+            # Log pour vérification
+            self.logger.info(f"Genre trouvé : {genre_name} ({genre_url})")
+            
+            # Ajouter les paramètres année et vue
+            if '?' in genre_url:
+                genre_url += '&year=2020&year2=2029&view=25'
+            else:
+                genre_url += '?year=2020&year2=2029&view=25'
+            
+            # Requête vers la page du genre
+            yield scrapy.Request(
+                genre_url,
+                callback=self.parse_films_list,
+                meta={'genre': genre_name}
+            )
+            
+            count += 1
     
     def parse_films_list(self, response):
         """Extrait la liste des films en utilisant la structure HTML exacte"""
@@ -40,9 +79,12 @@ class JpboxOfficeSpider(scrapy.Spider):
         rows = response.xpath('//tr')
         self.logger.info(f"Nombre total de lignes (tr) trouvées: {len(rows)}")
         
+        # Compteur pour ce genre spécifique
+        films_count = 0
+        
         for film_row in rows:
-            # Vérifier si on a atteint la limite
-            if len(self.visited_films) >= self.max_films:
+            # Vérifier si on a atteint la limite pour ce genre
+            if films_count >= self.max_films_per_genre:
                 break
             
             # Vérifier si cette ligne contient bien un film
@@ -98,7 +140,7 @@ class JpboxOfficeSpider(scrapy.Spider):
                                 if usa_match:
                                     date_usa = usa_match.group(1).strip()
                             
-                            self.logger.info(f"Film trouvé: {title} (ID: {film_id})")
+                            self.logger.info(f"Film trouvé: {title} (ID: {film_id}) - Genre: {genre}")
                             self.logger.info(f"Date France: {date_france}, Date USA: {date_usa}")
                             
                             # Créer un item avec les informations extraites
@@ -116,6 +158,9 @@ class JpboxOfficeSpider(scrapy.Spider):
                                 self.parse_film_details,
                                 meta={'item': item}
                             )
+                            
+                            # Incrémenter le compteur de films pour ce genre
+                            films_count += 1
 
     def parse_film_details(self, response):
         """Extrait les détails d'un film depuis sa page individuelle"""
@@ -124,23 +169,21 @@ class JpboxOfficeSpider(scrapy.Spider):
         
         self.logger.info(f"Analyse des détails du film: {item.get('titre', 'Inconnu')} - {response.url}")
         
-# 1. Synopsis
+        # 1. Synopsis
         synopsis_texts = response.xpath('//div[@class="bloc_infos tablesmall5"]/text()').getall()
         if synopsis_texts:
             #Joindre tous les fragments de texte et nettoyer
             item['synopsis'] = " ".join([text.strip() for text in synopsis_texts if text.strip()])
         #Voir pour remplacer les "," par "§"
 
-# 2. Durée 
+        # 2. Durée 
         duree = response.xpath('//h3/text()[contains(., "min")]').get()
         if duree:
             duree_clean = duree.strip()
             if "min" in duree_clean:
                 item['duree'] = duree_clean
         
-
-      
-# 3. Note moyenne 
+        # 3. Note moyenne 
         try:
             # Cibler précisément la section Moyenne et la première ligne d'étoiles
             rating_row = response.xpath('//table[contains(@class, "tablesmall1")]//tr[td[@class="celluletitre"]/div[contains(text(), "Moyenne")]]/following-sibling::tr[1]')
@@ -164,20 +207,19 @@ class JpboxOfficeSpider(scrapy.Spider):
             self.logger.error(f"Erreur lors de l'extraction de la note moyenne: {e}")
             item['note_moyenne'] = "Non disponible"
 
-#4. Entrées France
+        #4. Entrées France
         entrees_demarrage = response.xpath('//td[text()="Démarrage"]/following-sibling::td/div/text()').get()
         if entrees_demarrage:
             item['entrees_demarrage_france'] = entrees_demarrage.strip()
         
-#5. Entrées totales en France 
+        #5. Entrées totales en France 
         entrees_totales = response.xpath('//td[@class="cellulejaune"]/strong[contains(text(), "Entrées")]/parent::td/following-sibling::td[@class="cellulejaune"]/div/strong/text()').get()
         if not entrees_totales:
             entrees_totales = response.xpath('//td[contains(@class, "cellulejaune")][.//strong[contains(text(), "Entrées")]]/following-sibling::td/div/strong/text()').get()
         if entrees_totales:
             item['entrees_totales_france'] = entrees_totales.strip()
 
-
-#6. Budget
+        #6. Budget
         self.logger.info(f"Tentative d'extraction du budget pour {item.get('titre')}")
         
         # Tentative 1
@@ -218,42 +260,36 @@ class JpboxOfficeSpider(scrapy.Spider):
             self.logger.error(f"Impossible d'extraire le budget pour {item.get('titre')}")
             # Valeur par défaut pour éviter les champs vides
             item['budget'] = "Non disponible"
-            # Sauvegarder la page HTML pour analyse ultérieure
-            with open(f'debug_{item["film_id"]}.html', 'w', encoding='utf-8') as f:
-                f.write(response.text)
 
-        # Débogage de l'item final avant yield
-        self.logger.info(f"Item final avant yield: {item}")
+        # Débogage de l'item avant de continuer
+        self.logger.info(f"Item partiel avant extraction des autres données: {item}")
 
-
-#7. Recettes USA
+        #7. Recettes USA
         recette_usa = response.xpath('//td[contains(text(), "Etats-Unis")]/following-sibling::td/div/text()').get()
         if recette_usa:
             item['recette_usa'] = recette_usa.strip()
 
-#8. Remplacer par "Recettes_reste_du_monde" au nettoyage
+        #8. Recettes mondiales
         recette_monde = response.xpath('//td[contains(text(), "Reste du monde")]/following-sibling::td/div/text()').get()
         if recette_monde:
             item['recette_monde'] = recette_monde.strip()
 
-#9. Remplacer par "Recettes mondes" au nettoyage
+        #9. Total salles
         total_salles = response.xpath('//td[@class="cellulejaune"]/strong[text()="Total Salles"]/parent::td/following-sibling::td/div/strong/text()').get()
         if total_salles:
             item['total_salles'] = total_salles.strip()
         
-
-#10. Naviguer vers la page "casting" pour extraire les acteurs
+        #10. Naviguer vers la page "casting" pour extraire les acteurs
         film_id = item.get('film_id')
         if film_id:
             casting_url = f"https://www.jpbox-office.com/fichfilm.php?id={film_id}&view=7"
             yield scrapy.Request(
                 casting_url,
-                callback=self.parse_casting,  # Nouvelle fonction qui fait tout en un
+                callback=self.parse_casting,
                 meta={'item': item.copy()}
             )
         else:
             yield item
-
 
     def parse_casting(self, response):
         """Extrait toutes les informations de casting en une seule fonction"""
