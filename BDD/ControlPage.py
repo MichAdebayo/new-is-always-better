@@ -6,8 +6,6 @@ from pandas import DataFrame
 # Créer la base de données si elle n'existe pas
 create_db()
 
-    
-
 # Application Streamlit
 def main():
     st.title("Control Page")
@@ -23,6 +21,7 @@ def main():
         data = csv_to_database.load_data()
         csv_head = data.head()
         st.subheader("Success")
+        st.write(f'shape: {data.shape}')
         st.write(csv_head)
         #st.write(data[data['film_id'] == 22104])
     else : 

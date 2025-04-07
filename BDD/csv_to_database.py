@@ -1,4 +1,4 @@
-from sqlmodel import Session
+from sqlmodel import Session, select
 from database_manager import get_engine
 from models import Film, Person, Featuring
 import pandas as pd
@@ -91,20 +91,89 @@ class CSV2DataBase() :
                 description = str(getattr(line,CsvExpectedFilmField.DESCRIPTION.value))
                 duration = str(getattr(line,CsvExpectedFilmField.DURATION.value))
 
-                film = Film(
-                     jp_box_id = jp_box_id,
-                     title = title,
-                     usa_release_date = usa_release_date, 
-                     france_release_date = france_release_date,
-                     france_first_week_admissions = france_first_week_admissions,
-                     genre = genre,
-                     duration = duration,
-                     description = description
-                )
-                session.add(film)
+                film_id = self.add_film_to_session(session, jp_box_id, title, 
+                    usa_release_date, france_release_date, 
+                    france_first_week_admissions, 
+                    genre, duration, description)
+                
+                if film_id != 0 :
+                    self.add_jpbox_actors_to_session(session, film_id, featuring)
 
+    def add_film_to_session(self, session: Session, 
+        jp_box_id : int, title : str, 
+        usa_release_date : str, france_release_date:str, 
+        france_first_week_admissions : int, genre: str, duration: str, description: str) -> int :
+        
+        film = Film(
+            jp_box_id = jp_box_id,
+            title = title,
+            usa_release_date = usa_release_date, 
+            france_release_date = france_release_date,
+            france_first_week_admissions = france_first_week_admissions,
+            genre = genre,
+            duration = duration,
+            description = description
+        )
+        session.add(film)
+        try:
+            session.commit()
+        except Exception as ex :
+            session.rollback()
+            return 0
+        
+        session.refresh(film)
+        return film.id
+
+    def add_jpbox_actors_to_session(self, session : Session, film_id: int, featuring : str):
+        actors = featuring. split('|')
+
+        for actor in actors :
+            actor_datas = actor.split('(')
+            actor_name = actor_datas[0].strip()
+            if len(actor_datas) > 1 :
+                actor_data = actor_datas[1].replace(')','')
+                role = actor_data.split('-')[0].strip()
+            else :
+                role = "NotParsed"
+         
+            statement = select(Person).where(Person.full_name == actor_name)
+            result = session.exec(statement).one_or_none()
+            if result != None :
+                person = result
+            else :
+                person = Person(full_name = actor_name)
+                session.add(person)
                 try:
                     session.commit()
                 except Exception as ex :
                     session.rollback()
+
+            session.refresh(person)
+
+            statement = select(Featuring).where(Featuring.film_id == film_id)
+            results = session.exec(statement).all()
+
+            existing_featuring = False
+            for featuring_line in results :
+                if featuring_line.film_id != film_id : break
+                if featuring_line.person_id != person.id : break
+                if featuring_line.role != role : break
+                existing_featuring = True
+
+            if not existing_featuring : 
+                new_featuring = Featuring(
+                    film_id = film_id,
+                    person_id=person.id,
+                    role = role
+                )
+                session.add(new_featuring)
+                try:
+                    session.commit()
+                except Exception as ex :
+                    session.rollback()
+
+        
+
+
+        
             
