@@ -21,6 +21,7 @@ class AllocinescraperItem(scrapy.Item):
     viewer_rating = scrapy.Field()
     viewer_notes_count = scrapy.Field()
     viewer_critics_count = scrapy.Field()
+    director_link = scrapy.Field()
     synopsis = scrapy.Field()
 
     languages = scrapy.Field()
@@ -30,11 +31,15 @@ class AllocinescraperItem(scrapy.Item):
     year_of_production = scrapy.Field()
     film_nationality =  scrapy.Field()
     filming_secrets = scrapy.Field()
-    color = scrapy.Field()
+    awards = scrapy.Field()
+    budget = scrapy.Field()
+
     fr_entries = scrapy.Field()
+    us_entries = scrapy.Field()
     fr_entry_week = scrapy.Field()
+    us_entry_week = scrapy.Field()
     
-    
+    director_age = scrapy.Field()
     
     #associated_genres_urls =  scrapy.Field()
 

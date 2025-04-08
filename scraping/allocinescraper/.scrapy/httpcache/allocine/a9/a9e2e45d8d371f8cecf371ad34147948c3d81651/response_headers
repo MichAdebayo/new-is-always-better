@@ -1,0 +1,14 @@
+Date: Mon, 07 Apr 2025 08:40:43 GMT
+Content-Type: text/html; charset=utf-8
+Location: /film/fichefilm_gen_cfilm=1000001242.html
+Cache-Control: no-cache, private
+Vary: Origin, Accept-Encoding
+X-Cloud-Trace-Context: 193719e4e152839ceb2f92ccb473866e
+Via: 1.1 google
+Alt-Svc: h3=":443"; ma=86400
+Cf-Cache-Status: BYPASS
+Server-Timing: cfCacheStatus;desc="BYPASS"
+Report-To: {"endpoints":[{"url":"https:\/\/a.nel.cloudflare.com\/report\/v4?s=KT%2Bewq9rt%2FjY126zOzH96IFaOFaQ4nF%2B564pWdSFjOMAJ8e1VHYE1DurEqi%2FhiB6eGabDQELIAU5TwP7cmGD4R99NyAHxMKbZPD6cYM%2BbglcjrUCNdduDBMJ6oqTD%2BWSAg%3D%3D"}],"group":"cf-nel","max_age":604800}
+Nel: {"success_fraction":0.01,"report_to":"cf-nel","max_age":604800}
+Server: cloudflare
+Cf-Ray: 92c838c48be99e57-CDG

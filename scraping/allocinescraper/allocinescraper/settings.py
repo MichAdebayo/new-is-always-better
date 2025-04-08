@@ -108,10 +108,13 @@ TWISTED_REACTOR = "twisted.internet.asyncioreactor.AsyncioSelectorReactor"
 FEED_EXPORT_ENCODING = "utf-8"
 
 FEED_EXPORT_FIELDS = ['film_title', 'film_url', 'film_image_url' , 'release_date', 
-                      'duration', 'age_classification', 'associated_genres',
-                      'producers', 'director', 'top_stars', 'press_rating', 
-                      'press_critics_count', 'viewer_rating', 'viewer_notes_count', 'viewer_critics_count', 
-                      'languages', 'budget', 'distributor', 'year_of_production', 
-                      'film_nationality', 'filming_secrets', 'color', 'fr_entry_week',
-                      'fr_entries', 'synopsis', 
+                      'duration', 'age_classification', 'producers', 'director',
+                      'top_stars', 'press_rating', 'viewer_rating','languages',
+                      'distributor', 'year_of_production', 'film_nationality', 'filming_secrets',
+                      'fr_entry_week', 'us_entry_week','fr_entries',  'us_entries', 
+                      'awards', 'budget', 'associated_genres', 'press_critics_count',
+                      'viewer_critics_count', 'synopsis', 
 ]
+
+# 'associated_genres', 'director_link', 'press_critics_count',
+# 'viewer_notes_count', 'budget','color', 'director_age', 

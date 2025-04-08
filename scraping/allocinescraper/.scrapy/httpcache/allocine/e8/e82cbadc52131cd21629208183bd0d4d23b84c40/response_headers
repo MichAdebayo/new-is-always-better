@@ -1,0 +1,15 @@
+Date: Mon, 07 Apr 2025 11:48:43 GMT
+Content-Type: text/html; charset=UTF-8
+Vary: Accept,Origin, Accept-Encoding
+Cache-Control: max-age=60, private
+X-Cloud-Trace-Context: fb6a20002da5dc5a01d226499ea04a1a
+Via: 1.1 google
+Alt-Svc: h3=":443"; ma=86400
+Cf-Cache-Status: BYPASS
+Set-Cookie: __cf_bm=4R3n8TipDjaU10ituElfFhMuO2380p395oPBL9a7pe4-1744026523-1.0.1.1-UegKccfM_6r0ppvdCDIZug4napf0Gf3JEOHgy0M_cKCxlfM3JC9_7TIRR_2.8QBFqcgVWL8LPcbh3qGa9NeX9LaDSHa74hSWYR0omEIkmXg; path=/; expires=Mon, 07-Apr-25 12:18:43 GMT; domain=.allocine.fr; HttpOnly; Secure
+Server-Timing: cfCacheStatus;desc="BYPASS"
+Report-To: {"endpoints":[{"url":"https:\/\/a.nel.cloudflare.com\/report\/v4?s=G679os88XwPoCz0x0wnrql9WyC8ZcZlwgB9LyTho6E9ROtyYZFUtmEvM0s5ZfNkElnFRpQ45BYtnbQ66olrgOMS5xd%2FfECo4nHXUmPeUPDyEOoajGjLcOVToiFR0TPbRBA%3D%3D"}],"group":"cf-nel","max_age":604800}
+Nel: {"success_fraction":0.01,"report_to":"cf-nel","max_age":604800}
+Server: cloudflare
+Cf-Ray: 92c94c2adbfcd096-CDG
+Content-Encoding: gzip
