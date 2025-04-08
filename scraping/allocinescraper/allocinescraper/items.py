@@ -6,6 +6,8 @@
 import scrapy
 
 class AllocinescraperItem(scrapy.Item):
+    # Basic Film Details
+    # These fields are used to store basic information about the film.
     film_title = scrapy.Field()
     film_url = scrapy.Field()
     film_image_url = scrapy.Field()
@@ -24,6 +26,7 @@ class AllocinescraperItem(scrapy.Item):
     director_link = scrapy.Field()
     synopsis = scrapy.Field()
 
+    # Technical Details
     languages = scrapy.Field()
     budget = scrapy.Field()
     distributor =scrapy.Field()
@@ -34,24 +37,12 @@ class AllocinescraperItem(scrapy.Item):
     awards = scrapy.Field()
     budget = scrapy.Field()
 
+    # Box Office Details
     fr_entries = scrapy.Field()
     us_entries = scrapy.Field()
     fr_entry_week = scrapy.Field()
     us_entry_week = scrapy.Field()
-    
-    director_age = scrapy.Field()
-    
-    #associated_genres_urls =  scrapy.Field()
 
-
-#     # define the fields for your item here like:
-#     principal_genre = scrapy.Field()
-#     genre_link =  scrapy.Field()
-#     # producer_age = scrapy.Field()
-#     # cumul_france = scrapy.Field()
-#     # entrances_us = scrapy.Field()
-#     # entrances_week = scrapy.Field()
-#     # cumul_us = scrapy.Field()
 
 
 

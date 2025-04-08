@@ -3,6 +3,7 @@ from scrapy_splash import SplashRequest
 from allocinescraper.items import AllocinescraperItem
 from scrapy.spiders import CrawlSpider, Rule
 from scrapy.linkextractors import LinkExtractor
+from urllib.parse import urljoin
 
 class AllocineSpider(CrawlSpider):
     name = "allocine"
@@ -65,16 +66,14 @@ class AllocineSpider(CrawlSpider):
 
         if press_rating_raw := response.css('span.stareval-note::text').get():
             item['press_rating'] = float(press_rating_raw.replace(',', '.').strip())
-        if viewer_rating := response.css('div.rating-mdl.n40.stareval-stars + span.stareval-note::text').get():
+        if viewer_rating := response.xpath('//div[contains(@class, "rating-item-content")][.//span[contains(@class, "rating-title") and contains(text(), "Spectateurs")]]//span[contains(@class, "stareval-note")]/text()').get():
             item['viewer_rating'] = float(viewer_rating.replace(',', '.').strip())
 
         press_critics_count = response.css('span.stareval-review::text').get()
         item['press_critics_count'] = press_critics_count.strip() if press_critics_count else ""
         
-        viewer_critics_count = response.css('div.rating-mdl.n35.stareval-stars + span.stareval-note + span.stareval-review.light::text').get()
+        viewer_critics_count =  response.xpath('//div[contains(@class, "rating-item-content")][.//span[contains(@class, "rating-title") and contains(text(), "Spectateurs")]]//span[contains(@class, "stareval-review")]/text()').get()
         item['viewer_critics_count'] = viewer_critics_count.strip() if viewer_critics_count else ""
-        # viewer_notes_count = response.css('div.rating-mdl.n40.stareval-stars + span.stareval-note::text').get()
-        # item['viewer_notes_count'] = viewer_notes_count.strip() if viewer_notes_count else ""
 
         item['languages'] = response.xpath('//div[contains(@class, "item")][.//span[contains(@class, "what") and contains(text(), "Langues")]]//span[contains(@class, "that")]/text()').get(default='').strip()
         item['distributor'] = response.xpath('//div[contains(@class, "item")][.//span[contains(@class, "what") and contains(text(), "Distributeur")]]//span[contains(@class, "blue-link")]/text()').get(default='').strip()
@@ -83,12 +82,8 @@ class AllocineSpider(CrawlSpider):
         item['filming_secrets'] = response.xpath('//div[contains(@class, "item")][.//span[contains(@class, "what") and contains(text(), "Secrets de tournage")]]//span[contains(@class, "that")]/text()').get()
         item['awards'] = response.xpath('//div[contains(@class, "item")][.//span[contains(@class, "what") and contains(text(), "Récompenses")]]//span[contains(@class, "that")]/text()').get()
         item['budget'] = response.xpath('//div[contains(@class, "item")][.//span[contains(@class, "what") and contains(text(), "Budget")]]//span[contains(@class, "that")]/text()').get()
-        #actor_data = meta.css('.meta-body-item a::attr(href)').getall()
-        # actor_data = meta.xpath('.//div[@class="meta-body-direction"][.//span[contains(text(), "De")]]')
-        #item['director_link'] = actor_data.xpath('./a/@href').get()
-        #self.logger.info(f"All links: {item['director_link']}")
+        
 
-        # Build the box office URL if it's different
         film_box_office_url = response.url.replace('_gen_cfilm=', '-').replace('.html', '/') + 'box-office/'
 
         yield scrapy.Request(
@@ -133,3 +128,6 @@ class AllocineSpider(CrawlSpider):
             .get(default='')
             .strip()
         )
+
+
+        

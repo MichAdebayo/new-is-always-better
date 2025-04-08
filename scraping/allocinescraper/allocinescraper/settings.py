@@ -115,6 +115,3 @@ FEED_EXPORT_FIELDS = ['film_title', 'film_url', 'film_image_url' , 'release_date
                       'awards', 'budget', 'associated_genres', 'press_critics_count',
                       'viewer_critics_count', 'synopsis', 
 ]
-
-# 'associated_genres', 'director_link', 'press_critics_count',
-# 'viewer_notes_count', 'budget','color', 'director_age', 
