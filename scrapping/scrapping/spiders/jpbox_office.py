@@ -6,25 +6,62 @@ class JpboxOfficeSpider(scrapy.Spider):
     allowed_domains = ["jpbox-office.com"]
     
     # Maximum de films à récupérer par genre
-    max_films_per_genre = 1500
+    max_films_per_genre = 5189
     
     # Liste pour éviter les doublons
     visited_films = set()
     
-    # Paramètres pour éviter d'être bloqué
+    # Paramètres pour éviter d'être bloqué mais plus rapides
     custom_settings = {
         'USER_AGENT': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/98.0.4758.102 Safari/537.36',
-        'DOWNLOAD_DELAY': 3,  # Augmenté à 3 secondes pour éviter d'être bloqué
-        'RANDOMIZE_DOWNLOAD_DELAY': True,
-        'CONCURRENT_REQUESTS_PER_DOMAIN': 2,  # Limiter les requêtes simultanées
+        
+        # Paramètres d'autothrottle pour ajuster dynamiquement les délais
+        'AUTOTHROTTLE_ENABLED': True,
+        'AUTOTHROTTLE_START_DELAY': 0.5,  # Délai initial plus court
+        'AUTOTHROTTLE_MAX_DELAY': 2.0,    # Délai maximum raisonnable
+        'AUTOTHROTTLE_TARGET_CONCURRENCY': 8,
+        
+        # Paramètres de concurrence
+        'CONCURRENT_REQUESTS': 16,        # Total de requêtes simultanées
+        'CONCURRENT_REQUESTS_PER_DOMAIN': 12,  # Augmenté de 8 à 12
+        'DOWNLOAD_TIMEOUT': 20,           # Timeout des requêtes
+        
+        # Gestion du cache et des cookies
+        'HTTPCACHE_ENABLED': True,        # Activer le cache HTTP
+        'HTTPCACHE_EXPIRATION_SECS': 3600, # Cache valide pendant une heure
+        'COOKIES_ENABLED': False,         # Désactiver les cookies pour plus de rapidité
+        
+        # Paramètres de gestion de la mémoire
+        'MEMUSAGE_ENABLED': True,
+        'DEPTH_PRIORITY': 1,
+        'SCHEDULER_DISK_QUEUE': 'scrapy.squeues.PickleFifoDiskQueue',
+        'SCHEDULER_MEMORY_QUEUE': 'scrapy.squeues.FifoMemoryQueue',
+        
+        # Gestion des erreurs
+        'RETRY_TIMES': 5,                  # Nombre de tentatives
+        'RETRY_HTTP_CODES': [500, 502, 503, 504, 408, 429, 403],  # Ajout de 403 (Forbidden)
+        'RETRY_PRIORITY_ADJUST': -1,       # Diminuer la priorité des requêtes réessayées
+        
+        # Autres optimisations
+        'REDIRECT_ENABLED': True,
+        'REDIRECT_MAX_TIMES': 5,
+        'AJAXCRAWL_ENABLED': True,         # Pour le contenu chargé en JavaScript
+        
+        # En-têtes HTTP
         'DEFAULT_REQUEST_HEADERS': {
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
             'Accept-Language': 'fr,fr-FR;q=0.9,en;q=0.8,en-US;q=0.7',
+            'Accept-Encoding': 'gzip, deflate, br',
             'Referer': 'https://www.jpbox-office.com/',
-            'Connection': 'keep-alive'
+            'Connection': 'keep-alive',
+            'Upgrade-Insecure-Requests': '1',
+            'Sec-Fetch-Dest': 'document',
+            'Sec-Fetch-Mode': 'navigate',
+            'Sec-Fetch-Site': 'same-origin',
+            'Sec-Fetch-User': '?1',
+            'Cache-Control': 'max-age=0'
         }
     }
-    
     def start_requests(self):
         # URL pour la page des genres
         url = "https://www.jpbox-office.com/v9_genres.php"
@@ -34,20 +71,17 @@ class JpboxOfficeSpider(scrapy.Spider):
         """Extrait la liste des genres et navigue vers chaque page de genre"""
         self.logger.info(f"Extraction des genres depuis {response.url}")
         
-        # Extraire tous les liens de genre
-        genres_links = response.xpath('//table[@class="tablesmall tablesmall3"]//td[@class="col_poster_titre"]/h3/a')
+        # Extraire tous les liens de genre principal ET secondaire
+        # Cette nouvelle sélection cible à la fois les genres principaux et les "AUTRES CATÉGORIES"
+        genres_links = response.xpath('//table[@class="tablesmall tablesmall3"]//td[@class="col_poster_titre"]/h3/a | //div[@class="bloc_entete"]/following::table//td[@class="col_poster_titre"]/h3/a')
         
         self.logger.info(f"Nombre de genres trouvés : {len(genres_links)}")
         
-        # Limiter à 5 genres pour les tests
-        max_genres = 66
-        count = 0
+        # Ne pas limiter le nombre de genres à traiter
+        # Suppression de max_genres pour traiter tous les genres
         
         # Pour chaque genre, extraire l'URL et le nom
         for genre_link in genres_links:
-            if count >= max_genres:
-                break
-                
             genre_url = response.urljoin(genre_link.xpath('@href').get())
             genre_name = genre_link.xpath('text()').get().strip()
             
@@ -56,9 +90,9 @@ class JpboxOfficeSpider(scrapy.Spider):
             
             # Ajouter les paramètres année et vue
             if '?' in genre_url:
-                genre_url += '&year=2020&year2=2029&view=25'
+                genre_url += '&year=2000&year2=2024&view=25'
             else:
-                genre_url += '?year=2020&year2=2029&view=25'
+                genre_url += '?year=2000&year2=2024&view=25'
             
             # Requête vers la page du genre
             yield scrapy.Request(
@@ -66,8 +100,6 @@ class JpboxOfficeSpider(scrapy.Spider):
                 callback=self.parse_films_list,
                 meta={'genre': genre_name}
             )
-            
-            count += 1
     
     def parse_films_list(self, response):
         """Extrait la liste des films en utilisant la structure HTML exacte"""
@@ -76,8 +108,9 @@ class JpboxOfficeSpider(scrapy.Spider):
         self.logger.info(f"Analyse de la page: {response.url} - Genre: {genre}")
         
         # Compter le nombre de lignes dans le tableau pour vérifier
-        rows = response.xpath('//tr')
-        self.logger.info(f"Nombre total de lignes (tr) trouvées: {len(rows)}")
+        # Amélioration du sélecteur pour cibler plus précisément les lignes de films
+        rows = response.xpath('//table[contains(@class, "tablesmall")]//tr[.//td[contains(@class, "col_poster_titre")]/h3/a]')
+        self.logger.info(f"Nombre total de lignes de films trouvées: {len(rows)}")
         
         # Compteur pour ce genre spécifique
         films_count = 0
@@ -87,8 +120,12 @@ class JpboxOfficeSpider(scrapy.Spider):
             if films_count >= self.max_films_per_genre:
                 break
             
-            # Vérifier si cette ligne contient bien un film
+            # Extraire le titre
             title_element = film_row.xpath('.//td[contains(@class, "col_poster_titre")]/h3/a/b/text()')
+            
+            if not title_element:
+                # Essayer un sélecteur alternatif au cas où
+                title_element = film_row.xpath('.//td[contains(@class, "col_poster_titre")]/h3/a/text()')
             
             if title_element:
                 # Extraire le titre
@@ -174,8 +211,7 @@ class JpboxOfficeSpider(scrapy.Spider):
         if synopsis_texts:
             #Joindre tous les fragments de texte et nettoyer
             item['synopsis'] = " ".join([text.strip() for text in synopsis_texts if text.strip()])
-        #Voir pour remplacer les "," par "§"
-
+        
         # 2. Durée 
         duree = response.xpath('//h3/text()[contains(., "min")]').get()
         if duree:
@@ -209,9 +245,11 @@ class JpboxOfficeSpider(scrapy.Spider):
 
         #4. Entrées France
         entrees_demarrage = response.xpath('//td[text()="Démarrage"]/following-sibling::td/div/text()').get()
-        if entrees_demarrage:
-            item['entrees_demarrage_france'] = entrees_demarrage.strip()
-        
+        if not entrees_demarrage or entrees_demarrage.strip() == "" or entrees_demarrage.strip() == "-":
+            self.logger.info(f"Ignoré: {item.get('titre')} - Entrées démarrage non disponibles")
+            return  # Sortir de la fonction sans yield - le film est ignoré
+        item['entrees_demarrage_france'] = entrees_demarrage.strip()
+
         #5. Entrées totales en France 
         entrees_totales = response.xpath('//td[@class="cellulejaune"]/strong[contains(text(), "Entrées")]/parent::td/following-sibling::td[@class="cellulejaune"]/div/strong/text()').get()
         if not entrees_totales:
