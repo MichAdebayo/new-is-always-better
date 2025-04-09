@@ -1,179 +1,100 @@
 from sqlmodel import Session, select
 from database_manager import get_engine
-from models import Film, Person, Featuring
+from typing import Optional
 import pandas as pd
 
-from enum import StrEnum
+from csv_reader_base import BaseCsvReader
+from csv_reader_allocine import AllocineCsvReader
+from csv_reader_jp_box import JpBoxCsvReader
 
+from models import Film, Person, Featuring, GeographicZone, Admissions, Recette
+from expected_fields import CsvType, JpBoxExpectedFilmField, WikipediaPopulationFields, Country, AdmissionPeriod
 
 #______________________________________________________________________________
-#
-#  region champ Leo :
-#  film_id, titre,genre_principale,
-#  date_sortie_france,date_sortie_usa,
-#  image_url,synopsis,
-#  duree,
-#  note_moyenne,
-#  acteurs,
-#  entrees_demarrage_france,
-#  entrees_totales_france,
-#  budget,recette_usa,recette_reste_du_monde,recette_monde
-#______________________________________________________________________________
-class CsvExpectedFilmField(StrEnum) :
-    JPBOX_ID = "film_id"
-    TITLE = "titre"
-    GENRE = "genre_principale"
-    FRANCE_RELEASE_DATE = "date_sortie_france"
-    USA_RELEASE_DATE = "date_sortie_usa"
-    IMAGE_URL = "image_url"
-    DESCRIPTION = "synopsis"
-    DURATION = "duree"
-    AVERAGE_NOTE = "note_moyenne"
-    FEATURING = "acteurs"
-    FRANCE_FIRST_WEEK = "entrees_demarrage_france"
-    FRANCE_TOTAL = "entrees_totales_france"
-    BUDGET = "budget"
-    USA_RECETTE = "recette_usa"
-    NO_USA_RECETTE = "recette_reste_du_monde"
-    WORLD_RECETTE = "recette_monde"
-
-
 class CSV2DataBase() :
     def __init__(self):
-        pass
+        self.jp_box_csv_filename = ('films_jp_box.csv')
+        self.allocine_csv_filename = ('films_allocine.csv')
+        self.wikipedia_populations = ('wikipedia_populations.csv')
+        self.initialize_countries()
 
-    def load_data(self) -> pd.DataFrame:
-        data : pd.DataFrame = self.read_csv()
+    #__________________________________________________________________________
+    #
+    #  region initialize countries
+    #__________________________________________________________________________
+    def initialize_countries(self):
+        countries = pd.read_csv(self.wikipedia_populations, delimiter=',', quotechar='"')
+
+        engine = get_engine()
+        with Session(engine) as session:
+
+            statement = select(GeographicZone)
+            results = session.exec(statement).all()
+            names = list(filter(lambda x: x.name, results))
+
+            for line in countries.itertuples():
+                current_country = str(getattr(line,WikipediaPopulationFields.COUNTRY.value))
+                if current_country in names : 
+                    continue
+
+                current_population_str = getattr(line,WikipediaPopulationFields.POPULATION.value)
+                current_population = int(current_population_str)
+                new_zone = GeographicZone(
+                    name = current_country, 
+                    population = current_population
+                )
+                session.add(new_zone)
+                try:
+                    session.commit()
+                except Exception as ex :
+                    session.rollback()
+
+    #__________________________________________________________________________
+    #
+    #  region load_data
+    #__________________________________________________________________________
+    def load_data(self, csvType:CsvType) -> pd.DataFrame:
+        match csvType :
+            case CsvType.JPBOX : data : pd.DataFrame = self.read_csv(self.jp_box_csv_filename)
+            case CsvType.ALLOCINE : data : pd.DataFrame = self.read_csv(self.allocine_csv_filename)
         return data
-
-    def read_csv(self) -> pd.DataFrame:
-        data = pd.read_csv('films.csv', delimiter=',', quotechar='"')
+    #__________________________________________________________________________
+    #
+    #  region read_csv
+    #__________________________________________________________________________
+    def read_csv(self, filename) -> pd.DataFrame:
+        data = pd.read_csv(filename, delimiter=',', quotechar='"')
         return data
     
-    def check_columns(self, csv_fields : pd.Index) :
-        expected_fields = [x.value for x in CsvExpectedFilmField ]
-        for csv_field in csv_fields : 
-            if csv_field  not in expected_fields :
-                raise Exception(f"{csv_field} is not present in expected_fields")
-
-    def fill_database(self) :
+    #__________________________________________________________________________
+    #
+    #  region create_csv_reader
+    #__________________________________________________________________________ 
+    def create_csv_reader(self, csvType:CsvType ) -> BaseCsvReader: 
+        match csvType :
+            case CsvType.JPBOX : csv_reader = JpBoxCsvReader()
+            case CsvType.ALLOCINE : csv_reader = AllocineCsvReader()
+        return csv_reader
+                    
+    #__________________________________________________________________________
+    #
+    #  region fill_database
+    #__________________________________________________________________________
+    def fill_database(self, csv_type : CsvType) :
         dataframe = None
-        dataframe = self.load_data()
+        dataframe = self.load_data(csv_type)
         if dataframe is None :
             return
-
+        
         field_reference = dataframe.columns
-        self.check_columns(field_reference) 
+
+        csv_reader = self.create_csv_reader(csv_type)
+        csv_reader.check_columns(field_reference) 
   
         engine = get_engine()
         with Session(engine) as session:
             for line in dataframe.itertuples():
-
-                jp_box_id = int(getattr(line, CsvExpectedFilmField.JPBOX_ID.value ))
-                title = str(getattr(line,CsvExpectedFilmField.TITLE.value))
-                genre = str(getattr(line,CsvExpectedFilmField.GENRE.value))
-                france_release_date = str(getattr(line,CsvExpectedFilmField.FRANCE_RELEASE_DATE.value))
-                usa_release_date  = str(getattr(line, CsvExpectedFilmField.USA_RELEASE_DATE.value))
-                average_note =  str(getattr(line, CsvExpectedFilmField.AVERAGE_NOTE.value))
-                featuring = str(getattr(line, CsvExpectedFilmField.FEATURING.value))
-                    
-                france_first_week_admissions_value = getattr(line, CsvExpectedFilmField.FRANCE_FIRST_WEEK.value)
-                france_first_week_admissions = int(france_first_week_admissions_value) if isinstance(france_first_week_admissions_value, int) else None
-
-                france_total_admissions_value = getattr(line, CsvExpectedFilmField.FRANCE_TOTAL.value)
+                csv_reader.read_csv_line(session, line)
+      
                 
-                budget = getattr(line, CsvExpectedFilmField.BUDGET.value)
-                usa_recette = getattr(line, CsvExpectedFilmField.USA_RECETTE.value)
-                not_usa_recette = getattr(line, CsvExpectedFilmField.NO_USA_RECETTE.value)
-                world_recette = getattr(line, CsvExpectedFilmField.WORLD_RECETTE.value)
-
-                image_url  = str(getattr(line,CsvExpectedFilmField.IMAGE_URL.value))
-                description = str(getattr(line,CsvExpectedFilmField.DESCRIPTION.value))
-                duration = str(getattr(line,CsvExpectedFilmField.DURATION.value))
-
-                film_id = self.add_film_to_session(session, jp_box_id, title, 
-                    usa_release_date, france_release_date, 
-                    france_first_week_admissions, 
-                    genre, duration, description)
-                
-                if film_id != 0 :
-                    self.add_jpbox_actors_to_session(session, film_id, featuring)
-
-    def add_film_to_session(self, session: Session, 
-        jp_box_id : int, title : str, 
-        usa_release_date : str, france_release_date:str, 
-        france_first_week_admissions : int, genre: str, duration: str, description: str) -> int :
-        
-        film = Film(
-            jp_box_id = jp_box_id,
-            title = title,
-            usa_release_date = usa_release_date, 
-            france_release_date = france_release_date,
-            france_first_week_admissions = france_first_week_admissions,
-            genre = genre,
-            duration = duration,
-            description = description
-        )
-        session.add(film)
-        try:
-            session.commit()
-        except Exception as ex :
-            session.rollback()
-            return 0
-        
-        session.refresh(film)
-        return film.id
-
-    def add_jpbox_actors_to_session(self, session : Session, film_id: int, featuring : str):
-        actors = featuring. split('|')
-
-        for actor in actors :
-            actor_datas = actor.split('(')
-            actor_name = actor_datas[0].strip()
-            if len(actor_datas) > 1 :
-                actor_data = actor_datas[1].replace(')','')
-                role = actor_data.split('-')[0].strip()
-            else :
-                role = "NotParsed"
-         
-            statement = select(Person).where(Person.full_name == actor_name)
-            result = session.exec(statement).one_or_none()
-            if result != None :
-                person = result
-            else :
-                person = Person(full_name = actor_name)
-                session.add(person)
-                try:
-                    session.commit()
-                except Exception as ex :
-                    session.rollback()
-
-            session.refresh(person)
-
-            statement = select(Featuring).where(Featuring.film_id == film_id)
-            results = session.exec(statement).all()
-
-            existing_featuring = False
-            for featuring_line in results :
-                if featuring_line.film_id != film_id : break
-                if featuring_line.person_id != person.id : break
-                if featuring_line.role != role : break
-                existing_featuring = True
-
-            if not existing_featuring : 
-                new_featuring = Featuring(
-                    film_id = film_id,
-                    person_id=person.id,
-                    role = role
-                )
-                session.add(new_featuring)
-                try:
-                    session.commit()
-                except Exception as ex :
-                    session.rollback()
-
-        
-
-
-        
-            
+    

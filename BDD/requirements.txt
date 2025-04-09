@@ -1,2 +1,5 @@
 streamlit
 sqlmodel
+requests
+beautifulsoup4
+lxml
