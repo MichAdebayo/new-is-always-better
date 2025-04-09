@@ -98,6 +98,8 @@ __pycache__
 # db
 .db 
 *.db/
+db.sqlite3
+*.sqlite3
 
 # Pickle
 .pkl 
@@ -109,3 +111,4 @@ __pycache__
 
 # gitignore
 .gitignore
+theme/
