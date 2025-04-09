@@ -1,38 +1,18 @@
 import scrapy
-from scrapy_splash import SplashRequest
 from allocinescraper.items import AllocinescraperItem
 from scrapy.spiders import CrawlSpider, Rule
 from scrapy.linkextractors import LinkExtractor
-from urllib.parse import urljoin
+from urllib.parse import urlparse, parse_qs
 
 class AllocineSpider(CrawlSpider):
     name = "allocine"
     allowed_domains = ["allocine.fr"]
-    start_urls = ["https://www.allocine.fr/films/"]
+    start_urls = ["https://allocine.fr/films/?page=" + str(x) for x in range(1, 2000)]
     
-    custom_settings = {
-        'USER_AGENT': 'Mozilla/5.0 (iPad; CPU OS 12_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148',
-        'DOWNLOAD_DELAY': 3,
-        'AUTOTHROTTLE_ENABLED': True,
-        'HTTPCACHE_ENABLED': True,
-    }
-    
-    max_pages = 1
-    pages_scraped = 0
-
     rules = (
-        Rule(LinkExtractor(restrict_css='.pagination a'), follow=True, process_request='limit_pages'),
-        Rule(LinkExtractor(restrict_css='.meta-title-link'), callback='parse_film'),    
-
+        Rule(LinkExtractor(restrict_xpaths=".//a[@class='meta-title-link']"), callback='parse_film'),
     )
 
-    def limit_pages(self, request, *args):
-        if self.pages_scraped >= self.max_pages:
-            self.logger.info(f'Stopping after {self.max_pages} pages.')
-            return None
-        self.pages_scraped += 1
-        return request
-    
     def parse_film(self, response):
         item = AllocinescraperItem()
         item['film_title'] = response.css('div.titlebar-title::text').get('').strip()
