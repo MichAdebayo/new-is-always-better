@@ -109,3 +109,8 @@ __pycache__
 
 # gitignore
 .gitignore
+
+# cached http
+httpcache/
+.scrapy/httpcache/
+.scrapy/
