@@ -26,6 +26,9 @@ class AllocinescraperItem(scrapy.Item):
     director_link = scrapy.Field()
     synopsis = scrapy.Field()
 
+    broadcast_category = scrapy.Field()
+    trailer_views = scrapy.Field()
+
     # Technical Details
     languages = scrapy.Field()
     budget = scrapy.Field()
