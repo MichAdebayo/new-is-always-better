@@ -1,6 +1,7 @@
 import os
 from django.contrib import messages
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib import messages
 from .models import Movie, PredictionHistory
 from django.http import HttpResponse
 from django.core.files.storage import FileSystemStorage
@@ -8,16 +9,60 @@ import csv
 
 
 def dashboard(request):
-    # Obtenez tous les films
-    selected_movies = Movie.objects.all()[:2]  # Les deux premiers films
-    upcoming_movies = Movie.objects.all()[2:]  # Tous les films à venir
+    
+    selected_movies = Movie.objects.prefetch_related('predictions').all()[:2]  # Les deux premiers films
+    upcoming_movies = Movie.objects.prefetch_related('predictions').all()[2:]  # Tous les films à venir
 
+    predictions = []
+    for movie in selected_movies :
+        predictions = movie.predictions.all()
+        if len(predictions) >0 :
+            movie.last_prediction = predictions.last().first_week_predicted_entries_france
+
+    for movie in upcoming_movies :
+        predictions = movie.predictions.all()
+        if len(predictions) >0 :
+            movie.last_prediction = predictions.last().first_week_predicted_entries_france
+    
     context = {
-        'selected_movies': selected_movies,
+        'selected_movies': selected_movies, 
         'upcoming_movies': upcoming_movies,
+        'predictions': predictions,
     }
 
     return render(request, 'films/dashboard.html', context)
+
+def run_movie_prediction(request, movie_id) :
+    movie = get_object_or_404(Movie, id=movie_id)
+
+    # chargement modèle
+    import joblib
+    from sklearn.pipeline import Pipeline
+    dummy_model: Pipeline  = joblib.load("dummy_pipeline.joblib")
+
+    # chargement data 
+    import pandas as pd
+    original_csv = pd.read_csv('static/films_jp_box.csv')
+    
+    movie_row = original_csv[original_csv['titre']== movie.title].iloc[[0]]
+    prediction = dummy_model.predict(movie_row)
+
+    pred_int = int(prediction[0])
+    import datetime as dt
+
+    today = dt.datetime.now().date()
+
+    new_entry = PredictionHistory(
+        movie_id = movie.id, 
+        first_week_predicted_entries_france = pred_int, 
+        metric_score = float(pred_int/4),
+        model_version = 0,
+        date = today
+    )
+    new_entry.save()
+
+    messages.success(request, f"Action launched for the film: {movie.title}")
+    return redirect('dashboard')  
 
 def history(request):
     prediction_history = PredictionHistory.objects.all().order_by('date')
@@ -77,13 +122,15 @@ def import_csv(request):
                     print(row)  # Affiche les données de chaque ligne
 
                     try:
+                        total_entries = int(str(row['entrees_totales_france']).replace(' ', ''))
+
                         movie = Movie(
                             title=row['titre'],
                             image_url=row['image_url'],
                             synopsis=row['synopsis'],
                             genre=row['genre_principale'],
-                            cast=row['acteurs'],
-                            predicted_attendance = 0,  # Valeur par défaut pour la prédiction
+                            cast=row['acteurs'], 
+                            actual_entries_france = total_entries, 
                         )
                         movie.save()
                         movie_count += 1
