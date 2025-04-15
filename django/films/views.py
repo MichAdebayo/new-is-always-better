@@ -86,7 +86,7 @@ def top_ten_list(request):
 def dashboard(request):
     
     today = dt.datetime.now()
-    limit_date =  today - dt.timedelta(days=14)
+    limit_date =  today - dt.timedelta(days=30)
 
     recent_movies = Movie.objects.filter(  
             release_date_fr__gt = limit_date

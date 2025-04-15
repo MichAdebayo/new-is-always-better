@@ -67,10 +67,11 @@
             </a>
             <a href="{% url 'top_ten_list' %}"
                class="w-full flex items-center px-4 py-3 {% if active_tab == 'dashboard' %}bg-blue-50 text-blue-600{% else %}text-gray-600 hover:bg-gray-50{% endif %}">
+        
                 <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                          d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16"/>
-                </svg>
+                         d="M3 4.5h14.25M3 9h9.75M3 13.5h5.25m5.25-.75L17.25 9m0 0L21 12.75M17.25 9v12" />
+                </svg>      
                 Top ten
             </a>
             <a href="{% url 'history' %}"
