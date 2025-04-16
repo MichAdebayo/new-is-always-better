@@ -114,3 +114,7 @@ __pycache__
 httpcache/
 .scrapy/httpcache/
 .scrapy/
+
+# png
+.png
+*.png/
