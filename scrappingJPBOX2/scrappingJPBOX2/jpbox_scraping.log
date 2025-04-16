@@ -1,0 +1,122 @@
+2025-04-14 11:47:56 [scrapy.utils.log] INFO: Scrapy 2.12.0 started (bot: scrappingJPBOX2)
+2025-04-14 11:47:56 [scrapy.utils.log] INFO: Versions: lxml 5.3.2.0, libxml2 2.12.10, cssselect 1.3.0, parsel 1.10.0, w3lib 2.3.1, Twisted 24.11.0, Python 3.12.3 (main, Feb  4 2025, 14:48:35) [GCC 13.3.0], pyOpenSSL 25.0.0 (OpenSSL 3.4.1 11 Feb 2025), cryptography 44.0.2, Platform Linux-6.11.0-21-generic-x86_64-with-glibc2.39
+2025-04-14 11:47:56 [scrapy.addons] INFO: Enabled addons:
+[]
+2025-04-14 11:47:56 [scrapy.extensions.telnet] INFO: Telnet Password: f28a03f2ce6a66a3
+2025-04-14 11:47:56 [py.warnings] WARNING: /home/l-o/Projets/film-prediction/.venv/lib/python3.12/site-packages/scrapy/extensions/feedexport.py:432: ScrapyDeprecationWarning: The `FEED_URI` and `FEED_FORMAT` settings have been deprecated in favor of the `FEEDS` setting. Please see the `FEEDS` setting docs for more details
+  exporter = cls(crawler)
+
+2025-04-14 11:47:56 [scrapy.middleware] INFO: Enabled extensions:
+['scrapy.extensions.corestats.CoreStats',
+ 'scrapy.extensions.telnet.TelnetConsole',
+ 'scrapy.extensions.memusage.MemoryUsage',
+ 'scrapy.extensions.feedexport.FeedExporter',
+ 'scrapy.extensions.logstats.LogStats',
+ 'scrapy.extensions.throttle.AutoThrottle']
+2025-04-14 11:47:56 [scrapy.crawler] INFO: Overridden settings:
+{'AUTOTHROTTLE_ENABLED': True,
+ 'BOT_NAME': 'scrappingJPBOX2',
+ 'COOKIES_ENABLED': False,
+ 'DOWNLOAD_DELAY': 1,
+ 'DOWNLOAD_TIMEOUT': 120,
+ 'FEED_EXPORT_ENCODING': 'utf-8-sig',
+ 'FEED_EXPORT_FIELDS': ['film_id',
+                        'titre',
+                        'genre_principale',
+                        'genres',
+                        'date_sortie_france',
+                        'date_sortie_usa',
+                        'duree_minutes',
+                        'synopsis',
+                        'realisateur',
+                        'acteurs',
+                        'pays_origine',
+                        'budget',
+                        'box_office_demarrage',
+                        'box_office_france',
+                        'recette_usa',
+                        'recette_monde',
+                        'image_url',
+                        'note_moyenne'],
+ 'LOG_FILE': 'jpbox_scraping.log',
+ 'LOG_LEVEL': 'INFO',
+ 'NEWSPIDER_MODULE': 'scrappingJPBOX2.spiders',
+ 'RETRY_HTTP_CODES': [500, 502, 503, 504, 408, 429, 403],
+ 'RETRY_TIMES': 5,
+ 'SPIDER_MODULES': ['scrappingJPBOX2.spiders'],
+ 'USER_AGENT': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 '
+               '(KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'}
+2025-04-14 11:47:56 [scrapy.middleware] INFO: Enabled downloader middlewares:
+['scrapy.downloadermiddlewares.offsite.OffsiteMiddleware',
+ 'scrapy.downloadermiddlewares.httpauth.HttpAuthMiddleware',
+ 'scrapy.downloadermiddlewares.downloadtimeout.DownloadTimeoutMiddleware',
+ 'scrapy.downloadermiddlewares.defaultheaders.DefaultHeadersMiddleware',
+ 'scrapy.downloadermiddlewares.useragent.UserAgentMiddleware',
+ 'scrapy.downloadermiddlewares.retry.RetryMiddleware',
+ 'scrapy.downloadermiddlewares.redirect.MetaRefreshMiddleware',
+ 'scrapy.downloadermiddlewares.httpcompression.HttpCompressionMiddleware',
+ 'scrapy.downloadermiddlewares.redirect.RedirectMiddleware',
+ 'scrapy.downloadermiddlewares.httpproxy.HttpProxyMiddleware',
+ 'scrapy.downloadermiddlewares.stats.DownloaderStats']
+2025-04-14 11:47:56 [scrapy.middleware] INFO: Enabled spider middlewares:
+['scrapy.spidermiddlewares.httperror.HttpErrorMiddleware',
+ 'scrapy.spidermiddlewares.referer.RefererMiddleware',
+ 'scrapy.spidermiddlewares.urllength.UrlLengthMiddleware',
+ 'scrapy.spidermiddlewares.depth.DepthMiddleware']
+2025-04-14 11:47:56 [scrapy.middleware] INFO: Enabled item pipelines:
+['scrappingJPBOX2.pipelines.ScrappingjpboxPipeline']
+2025-04-14 11:47:56 [scrapy.core.engine] INFO: Spider opened
+2025-04-14 11:47:56 [jpbox_mass] INFO: Pipeline initialisé - Fichier de sortie: exports/jpbox_films_20250414_114756.csv
+2025-04-14 11:47:56 [scrapy.extensions.logstats] INFO: Crawled 0 pages (at 0 pages/min), scraped 0 items (at 0 items/min)
+2025-04-14 11:47:56 [scrapy.extensions.telnet] INFO: Telnet console listening on 127.0.0.1:6023
+2025-04-14 11:47:56 [jpbox_mass] INFO: 🚀 DÉMARRAGE DU SPIDER JPBOX (PRODUCTION)
+2025-04-14 11:47:56 [jpbox_mass] INFO: Configuration: 5 genres, 20 films par genre/période, 100 films max au total
+2025-04-14 11:47:57 [jpbox_mass] INFO: Extraction des genres depuis https://www.jpbox-office.com/v9_genres.php
+2025-04-14 11:47:57 [jpbox_mass] INFO: Nombre de genres trouvés : 66
+2025-04-14 11:47:57 [jpbox_mass] INFO: Limitation à 5 genres
+2025-04-14 11:47:57 [jpbox_mass] INFO: Genre 1/5: Animation
+2025-04-14 11:47:57 [jpbox_mass] INFO: Genre 2/5: Aventure - Action
+2025-04-14 11:47:57 [jpbox_mass] INFO: Genre 3/5: Catastrophe
+2025-04-14 11:47:57 [jpbox_mass] INFO: Genre 4/5: Comédie
+2025-04-14 11:47:57 [jpbox_mass] INFO: Genre 5/5: Comédie dramatique
+2025-04-14 11:48:01 [jpbox_mass] INFO: Page 1 - Genre: Animation - Période: 2000-2009 - Films: 183
+2025-04-14 11:48:01 [jpbox_mass] INFO: 🎬 FILMS TRAITÉS: 10 - Dernier: 3 amis mènent l'enquête
+2025-04-14 11:48:01 [jpbox_mass] INFO: 🎬 FILMS TRAITÉS: 20 - Dernier: Le Sens de la vie pour 9.99$
+2025-04-14 11:48:01 [jpbox_mass] INFO: Limite de films atteinte pour Animation - 2000-2009 (20 films). Passage à la période/genre suivant.
+2025-04-14 11:48:01 [jpbox_mass] INFO: Limite de films atteinte pour Animation - 2000-2009 (20/20)
+2025-04-14 11:48:05 [jpbox_mass] INFO: Page 1 - Genre: Comédie dramatique - Période: 2020-2029 - Films: 200
+2025-04-14 11:48:05 [jpbox_mass] INFO: 🎬 FILMS TRAITÉS: 30 - Dernier: Mercato
+2025-04-14 11:48:05 [jpbox_mass] INFO: 🎬 FILMS TRAITÉS: 40 - Dernier: Limonov, la ballade
+2025-04-14 11:48:05 [jpbox_mass] INFO: Limite de films atteinte pour Comédie dramatique - 2020-2029 (20 films). Passage à la période/genre suivant.
+2025-04-14 11:48:05 [jpbox_mass] INFO: Limite de films atteinte pour Comédie dramatique - 2020-2029 (20/20)
+2025-04-14 11:48:07 [jpbox_mass] INFO: Page 1 - Genre: Comédie dramatique - Période: 2010-2019 - Films: 500
+2025-04-14 11:48:07 [jpbox_mass] INFO: 🎬 FILMS TRAITÉS: 50 - Dernier: Place des Victoires
+2025-04-14 11:48:07 [jpbox_mass] INFO: 🎬 FILMS TRAITÉS: 60 - Dernier: La Vie scolaire
+2025-04-14 11:48:07 [jpbox_mass] INFO: Limite de films atteinte pour Comédie dramatique - 2010-2019 (20 films). Passage à la période/genre suivant.
+2025-04-14 11:48:07 [jpbox_mass] INFO: Limite de films atteinte pour Comédie dramatique - 2010-2019 (20/20)
+2025-04-14 11:48:08 [jpbox_mass] INFO: Page 1 - Genre: Comédie dramatique - Période: 2000-2009 - Films: 168
+2025-04-14 11:48:08 [jpbox_mass] INFO: 🎬 FILMS TRAITÉS: 70 - Dernier: Maman mode d'emploi
+2025-04-14 11:48:08 [jpbox_mass] INFO: 🎬 FILMS TRAITÉS: 80 - Dernier: Le Temps qu'il reste
+2025-04-14 11:48:08 [jpbox_mass] INFO: Limite de films atteinte pour Comédie dramatique - 2000-2009 (20 films). Passage à la période/genre suivant.
+2025-04-14 11:48:08 [jpbox_mass] INFO: Limite de films atteinte pour Comédie dramatique - 2000-2009 (20/20)
+2025-04-14 11:48:09 [jpbox_mass] INFO: Page 1 - Genre: Comédie - Période: 2020-2029 - Films: 336
+2025-04-14 11:48:09 [jpbox_mass] INFO: 🎬 FILMS TRAITÉS: 90 - Dernier: La Cache
+2025-04-14 11:48:09 [jpbox_mass] INFO: 🎬 FILMS TRAITÉS: 100 - Dernier: Les Cadeaux
+2025-04-14 11:48:09 [jpbox_mass] INFO: Limite de films atteinte pour Comédie - 2020-2029 (20 films). Passage à la période/genre suivant.
+2025-04-14 11:48:09 [jpbox_mass] INFO: Limite de films atteinte pour Comédie - 2020-2029 (20/20)
+2025-04-14 11:48:10 [jpbox_mass] INFO: Limite totale de films atteinte (100). Arrêt du scraping.
+2025-04-14 11:48:11 [jpbox_mass] INFO: Limite totale de films atteinte (100). Arrêt du scraping.
+2025-04-14 11:48:12 [jpbox_mass] INFO: Limite totale de films atteinte (100). Arrêt du scraping.
+2025-04-14 11:48:13 [jpbox_mass] INFO: Limite totale de films atteinte (100). Arrêt du scraping.
+2025-04-14 11:48:15 [jpbox_mass] INFO: Limite totale de films atteinte (100). Arrêt du scraping.
+2025-04-14 11:48:16 [jpbox_mass] INFO: Limite totale de films atteinte (100). Arrêt du scraping.
+2025-04-14 11:48:17 [jpbox_mass] INFO: Limite totale de films atteinte (100). Arrêt du scraping.
+2025-04-14 11:48:18 [jpbox_mass] INFO: Limite totale de films atteinte (100). Arrêt du scraping.
+2025-04-14 11:48:20 [jpbox_mass] INFO: Limite totale de films atteinte (100). Arrêt du scraping.
+2025-04-14 11:48:21 [jpbox_mass] INFO: Limite totale de films atteinte (100). Arrêt du scraping.
+2025-04-14 11:48:55 [jpbox_mass] INFO: Extraction en cours: 10 films traités
+2025-04-14 11:48:56 [scrapy.extensions.logstats] INFO: Crawled 44 pages (at 44 pages/min), scraped 11 items (at 11 items/min)
+2025-04-14 11:49:20 [scrapy.crawler] INFO: Received SIGINT, shutting down gracefully. Send again to force 
+2025-04-14 11:49:20 [scrapy.core.engine] INFO: Closing spider (shutdown)
+2025-04-14 11:49:21 [scrapy.crawler] INFO: Received SIGINT twice, forcing unclean shutdown
+2025-04-14 11:49:21 [scrapy.core.downloader.handlers.http11] WARNING: Got data loss in https://www.jpbox-office.com/fichfilm.php?id=10987. If you want to process broken responses set the setting DOWNLOAD_FAIL_ON_DATALOSS = False -- This message won't be shown in further requests

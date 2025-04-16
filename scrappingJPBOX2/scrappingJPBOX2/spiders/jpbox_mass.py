@@ -1,17 +1,26 @@
 import scrapy
 import re
 from datetime import datetime
+import os
+import sys
+
+# Ajout du répertoire parent au chemin de recherche pour pouvoir importer le fichier de config
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+# Import de la configuration
+from jpbox_config import (
+    PERIODS, MAX_GENRES, MAX_FILMS_PER_GENRE_PERIOD, MAX_TOTAL_FILMS,
+    MAX_PAGES_PER_GENRE_PERIOD, EXPORT_SETTINGS, PERFORMANCE_SETTINGS,
+    LOGGING_SETTINGS, SPECIFIC_GENRES, MAIN_ACTORS_ONLY, MAX_ACTORS,
+    DEBUG_MODE, EXPORT_FIELDS
+)
 
 class MassiveJpboxSpider(scrapy.Spider):
     name = "jpbox_mass"
     allowed_domains = ["jpbox-office.com"]
     
-    # Périodes à traiter
-    periods = [
-        {"year": "2000", "year2": "2009", "label": "2000-2009"},
-        {"year": "2010", "year2": "2019", "label": "2010-2019"},
-        {"year": "2020", "year2": "2029", "label": "2020-2029"},
-    ]
+    # Périodes à traiter (importées de la config)
+    periods = PERIODS
     
     # Liste pour éviter les doublons
     visited_films = set()
@@ -21,28 +30,27 @@ class MassiveJpboxSpider(scrapy.Spider):
     page_count = 0
     genre_count = 0
     
+    # Paramètres personnalisés (combinés avec ceux de la config)
     custom_settings = {
         'ROBOTSTXT_OBEY': False,
         'DOWNLOAD_TIMEOUT': 120,
-        'DOWNLOAD_DELAY': 1,
-        'CONCURRENT_REQUESTS': 16,
-        'CONCURRENT_REQUESTS_PER_DOMAIN': 8,
+        'FEED_URI': EXPORT_SETTINGS['FEED_URI'],
+        'FEED_FORMAT': EXPORT_SETTINGS['FEED_FORMAT'],
+        'FEED_EXPORT_ENCODING': EXPORT_SETTINGS['FEED_EXPORT_ENCODING'],
+        'FEED_EXPORT_DELIMITER': EXPORT_SETTINGS['FEED_EXPORT_DELIMITER'],
+        'LOG_LEVEL': LOGGING_SETTINGS['LOG_LEVEL'],
+        'LOG_FILE': LOGGING_SETTINGS['LOG_FILE'],
+        'DOWNLOAD_DELAY': PERFORMANCE_SETTINGS['DOWNLOAD_DELAY'],
+        'CONCURRENT_REQUESTS': PERFORMANCE_SETTINGS['CONCURRENT_REQUESTS'],
+        'CONCURRENT_REQUESTS_PER_DOMAIN': PERFORMANCE_SETTINGS['CONCURRENT_REQUESTS_PER_DOMAIN'],
         'DEPTH_LIMIT': 0,
-        'FEED_URI': './massive_jpbox_export.csv',
-        'FEED_FORMAT': 'csv',
-        'FEED_EXPORT_ENCODING': 'utf-8-sig',
-        'FEED_EXPORT_DELIMITER': ';',
-        'LOG_LEVEL': 'INFO',
-        'FEED_EXPORT_FIELDS': [
-            'film_id', 'titre', 'genre_principale', 'genres', 'date_sortie_france', 
-            'date_sortie_usa', 'duree_minutes', 'synopsis', 'realisateur', 'acteurs', 
-            'pays_origine', 'budget', 'box_office_demarrage', 'box_office_france', 'recette_usa', 
-            'recette_monde', 'image_url', 'note_moyenne'
-        ]
+        'FEED_EXPORT_FIELDS': EXPORT_FIELDS
     }
     
     def start_requests(self):
-        self.logger.info("🚀 DÉMARRAGE DU SPIDER MASSIVE (EXTRACTION COMPLÈTE)")
+        mode = "DEBUG" if DEBUG_MODE else "PRODUCTION"
+        self.logger.info(f"🚀 DÉMARRAGE DU SPIDER JPBOX ({mode})")
+        self.logger.info(f"Configuration: {MAX_GENRES} genres, {MAX_FILMS_PER_GENRE_PERIOD} films par genre/période, {MAX_TOTAL_FILMS} films max au total")
         url = "https://www.jpbox-office.com/v9_genres.php"
         yield scrapy.Request(url, self.parse_genres)
     
@@ -53,8 +61,23 @@ class MassiveJpboxSpider(scrapy.Spider):
         total_genres = len(genres_links)
         self.logger.info(f"Nombre de genres trouvés : {total_genres}")
         
-        # Limiter à 10 genres pour tester
-        genres_to_process = 10
+        # Filtrer les genres si une liste spécifique est fournie
+        if SPECIFIC_GENRES:
+            self.logger.info(f"Filtrage des genres: recherche uniquement de {SPECIFIC_GENRES}")
+            filtered_genres = []
+            for genre_link in genres_links:
+                genre_name = genre_link.xpath('text()').get().strip()
+                if genre_name in SPECIFIC_GENRES:
+                    filtered_genres.append(genre_link)
+            genres_links = filtered_genres
+            self.logger.info(f"Genres filtrés: {len(genres_links)} genres correspondants trouvés")
+        
+        # Limiter le nombre de genres si configuré
+        if MAX_GENRES is not None:
+            genres_to_process = min(MAX_GENRES, len(genres_links))
+            self.logger.info(f"Limitation à {genres_to_process} genres")
+        else:
+            genres_to_process = len(genres_links)
         
         for i, genre_link in enumerate(genres_links[:genres_to_process]):
             genre_url = response.urljoin(genre_link.xpath('@href').get())
@@ -72,12 +95,29 @@ class MassiveJpboxSpider(scrapy.Spider):
                 yield scrapy.Request(
                     period_url,
                     callback=self.parse_films_list,
-                    meta={'genre': genre_name, 'period': period['label']}
+                    meta={
+                        'genre': genre_name, 
+                        'period': period['label'],
+                        'page_count': 0,
+                        'films_found': 0
+                    }
                 )
     
     def parse_films_list(self, response):
+        # Vérifier si on a atteint la limite totale de films
+        if MAX_TOTAL_FILMS is not None and self.film_count >= MAX_TOTAL_FILMS:
+            self.logger.info(f"Limite totale de films atteinte ({MAX_TOTAL_FILMS}). Arrêt du scraping.")
+            return
+        
         genre = response.meta.get('genre', 'unknown')
         period = response.meta.get('period', 'unknown')
+        page_count = response.meta.get('page_count', 0) + 1
+        films_found = response.meta.get('films_found', 0)
+        
+        # Vérifier si on a atteint la limite de pages par genre/période
+        if MAX_PAGES_PER_GENRE_PERIOD is not None and page_count > MAX_PAGES_PER_GENRE_PERIOD:
+            self.logger.info(f"Limite de pages atteinte pour {genre} - {period} ({MAX_PAGES_PER_GENRE_PERIOD} pages). Passage au genre/période suivant.")
+            return
         
         # Déterminer la page actuelle
         current_page = 1
@@ -90,9 +130,20 @@ class MassiveJpboxSpider(scrapy.Spider):
         films_count = len(films)
         
         self.page_count += 1
-        self.logger.info(f"Page {self.page_count} - Genre: {genre} - Période: {period} - Films: {films_count}")
+        self.logger.info(f"Page {page_count} - Genre: {genre} - Période: {period} - Films: {films_count}")
         
-        for film_row in films:  # Ne pas limiter le nombre de films par page
+        # Pour chaque film sur la page
+        for film_row in films:
+            # Vérifier si on a atteint la limite de films par genre/période
+            if MAX_FILMS_PER_GENRE_PERIOD is not None and films_found >= MAX_FILMS_PER_GENRE_PERIOD:
+                self.logger.info(f"Limite de films atteinte pour {genre} - {period} ({MAX_FILMS_PER_GENRE_PERIOD} films). Passage à la période/genre suivant.")
+                break
+            
+            # Vérifier si on a atteint la limite totale de films
+            if MAX_TOTAL_FILMS is not None and self.film_count >= MAX_TOTAL_FILMS:
+                self.logger.info(f"Limite totale de films atteinte ({MAX_TOTAL_FILMS}). Arrêt du scraping.")
+                break
+            
             title_element = film_row.xpath('.//td[contains(@class, "col_poster_titre")]/h3/a/b/text()')
             if not title_element:
                 title_element = film_row.xpath('.//td[contains(@class, "col_poster_titre")]/h3/a/text()')
@@ -111,6 +162,7 @@ class MassiveJpboxSpider(scrapy.Spider):
                         if film_id not in self.visited_films:
                             self.visited_films.add(film_id)
                             self.film_count += 1
+                            films_found += 1
                             
                             # Extraire les dates
                             content_html = film_row.xpath('.//td[contains(@class, "col_poster_contenu")]').get()
@@ -152,26 +204,41 @@ class MassiveJpboxSpider(scrapy.Spider):
                                 meta={'item': item}
                             )
         
-        # Rechercher la pagination
-        next_page = response.xpath('//div[@class="pagination"]//a[contains(text(), "»")]/@href').get()
-        if not next_page:
-            next_page = response.xpath('//a[contains(text(), "Suivant") or contains(text(), "»")]/@href').get()
-        if not next_page:
-            current_page_num = current_page
-            next_page_num = current_page + 1
-            next_page = response.xpath(f'//div[@class="pagination"]//a[contains(text(), "{next_page_num}")]/@href').get()
+        # Si on n'a pas atteint les limites, continuer avec la page suivante
+        if (MAX_FILMS_PER_GENRE_PERIOD is None or films_found < MAX_FILMS_PER_GENRE_PERIOD) and \
+           (MAX_PAGES_PER_GENRE_PERIOD is None or page_count < MAX_PAGES_PER_GENRE_PERIOD) and \
+           (MAX_TOTAL_FILMS is None or self.film_count < MAX_TOTAL_FILMS):
+            
+            # Rechercher la pagination
+            next_page = response.xpath('//div[@class="pagination"]//a[contains(text(), "»")]/@href').get()
+            if not next_page:
+                next_page = response.xpath('//a[contains(text(), "Suivant") or contains(text(), "»")]/@href').get()
+            if not next_page:
+                current_page_num = current_page
+                next_page_num = current_page + 1
+                next_page = response.xpath(f'//div[@class="pagination"]//a[contains(text(), "{next_page_num}")]/@href').get()
 
-        if next_page:
-            next_url = response.urljoin(next_page)
-            self.logger.info(f"📄 Navigation vers la page suivante: {next_url}")
-            yield scrapy.Request(
-                next_url,
-                callback=self.parse_films_list,
-                meta={'genre': genre, 'period': period},
-                priority=100  # Priorité élevée
-            )
+            if next_page:
+                next_url = response.urljoin(next_page)
+                self.logger.info(f"📄 Navigation vers la page suivante: {next_url}")
+                yield scrapy.Request(
+                    next_url,
+                    callback=self.parse_films_list,
+                    meta={
+                        'genre': genre, 
+                        'period': period,
+                        'page_count': page_count,
+                        'films_found': films_found
+                    },
+                    priority=100  # Priorité élevée
+                )
+            else:
+                self.logger.info(f"🏁 Fin de pagination pour {genre} - {period}")
         else:
-            self.logger.info(f"🏁 Fin de pagination pour {genre} - {period}")
+            if MAX_FILMS_PER_GENRE_PERIOD is not None and films_found >= MAX_FILMS_PER_GENRE_PERIOD:
+                self.logger.info(f"Limite de films atteinte pour {genre} - {period} ({films_found}/{MAX_FILMS_PER_GENRE_PERIOD})")
+            if MAX_PAGES_PER_GENRE_PERIOD is not None and page_count >= MAX_PAGES_PER_GENRE_PERIOD:
+                self.logger.info(f"Limite de pages atteinte pour {genre} - {period} ({page_count}/{MAX_PAGES_PER_GENRE_PERIOD})")
     
     def parse_film_details(self, response):
         """Extrait les détails complets d'un film"""
@@ -267,8 +334,12 @@ class MassiveJpboxSpider(scrapy.Spider):
         acteurs = []
         act_rows = response.xpath('//td[@class="celluletitre" and contains(text(), "Acteurs et actrices")]/parent::tr/following-sibling::tr')
         
-        for row in act_rows:
+        for i, row in enumerate(act_rows):
             if row.xpath('./td[@class="celluletitre"]').get():
+                break
+                
+            # Si on veut seulement les acteurs principaux et qu'on en a déjà suffisamment
+            if MAIN_ACTORS_ONLY and i >= MAX_ACTORS:
                 break
                 
             nom = row.xpath('.//td[@class="col_poster_titre"]/h3/a/text()').get()
@@ -276,7 +347,9 @@ class MassiveJpboxSpider(scrapy.Spider):
                 acteurs.append(nom.strip())
         
         if acteurs:
-            item['acteurs'] = " | ".join(acteurs[:10])  # Limiter à 10
+            # Limiter le nombre d'acteurs selon la configuration
+            max_actors_to_keep = min(len(acteurs), MAX_ACTORS)
+            item['acteurs'] = " | ".join(acteurs[:max_actors_to_keep])
         
         yield item
     
