@@ -1,6 +1,7 @@
 from django.db import models
 
-DATE_FORMAT_STRING = "%d/%m/%Y"
+INITIAL_DATE_FORMAT_STRING = "%d/%m/%Y"
+ALLOCINE_DATE_FORMAT_STRING = "%d %B %Y"
 
 class Movie(models.Model):
     title = models.CharField(max_length=200)
@@ -9,7 +10,7 @@ class Movie(models.Model):
     genre = models.CharField(max_length=100)
     cast = models.TextField()
     release_date_fr = models.DateField(null=True, default=None)
-    actual_entries_france= models.IntegerField()
+    first_week_actual_entries_france = models.IntegerField(default=0)
     room = models.IntegerField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 

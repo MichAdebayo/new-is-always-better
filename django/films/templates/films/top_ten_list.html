@@ -12,6 +12,9 @@
                         <th class="py-2 px-4 text-left">Titre</th>
                         <th class="py-2 px-4 text-left">Genre</th>
                         <th class="py-2 px-4 text-left">Prediction</th>
+                        <th class="py-2 px-4 text-left">Realité</th>
+                        <th class="py-2 px-4 text-left">Salle 1</th>
+                        <th class="py-2 px-4 text-left">Salle 2</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -21,6 +24,13 @@
                         <td class="py-2 px-4">{{ movie.title }}</td>
                         <td class="py-2 px-4">{{ movie.genre }}</td>
                         <td class="py-2 px-4 text-right">{{ movie.last_prediction }}</td>
+                        <td class="py-2 px-4 text-right">{{ movie.first_week_actual_entries_france }}</td>
+                        <td class="py-2 px-4">
+                            <input type="checkbox" name="selection" value="{{ article.id }}">
+                        </td>
+                        <td class="py-2 px-4">
+                            <input type="checkbox" name="selection" value="{{ article.id }}">
+                        </td>
                         <td class="synopsis">{{ movie.synopsis }}</td>
                     </tr>
                     {% endfor %}

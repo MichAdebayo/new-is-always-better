@@ -5,7 +5,9 @@ from django.db.models import Q
 from django.http import HttpResponse
 from django.shortcuts import render, redirect, get_object_or_404
 
-from .models import Movie, PredictionHistory, DATE_FORMAT_STRING
+from .models import Movie, PredictionHistory, INITIAL_DATE_FORMAT_STRING
+
+from .data_importer import DataImporter
 
 import csv
 import datetime as dt
@@ -37,7 +39,7 @@ def top_ten_list(request):
     start_wednesday = start_wednesday - dt.timedelta(days=14)
     # } debug only 
     
-    limit_date = today - dt.timedelta(days=14)
+    limit_date = today - dt.timedelta(days=21)
     top_movies = Movie.objects.filter(  
             release_date_fr__gt = limit_date
         ).order_by(
@@ -170,15 +172,11 @@ def financials(request):
 
 #__________________________________________________________________________________________________
 #
-# region settings
+# region settings / import_csv
 #__________________________________________________________________________________________________
 def settings(request):
     return render(request, 'films/settings.html')
 
-#__________________________________________________________________________________________________
-#
-# region import_csv
-#__________________________________________________________________________________________________
 def import_csv(request):
     if request.method == 'POST' and request.FILES.get('csv_file'):
         try:
@@ -201,35 +199,20 @@ def import_csv(request):
 
             # Lire le fichier CSV et remplir la base de données
             with open(file_path, newline='', encoding='utf-8') as file:
-                #reader = csv.DictReader(file )
-                reader = csv.DictReader(file, delimiter=';')
-                #print("Headers:", reader.fieldnames)  # Affiche les noms des colonnes
+
+                sample = file.read(1024)
+                file.seek(0)
+                sniffed_dialect = csv.Sniffer().sniff(sample)
+                
+                reader = csv.DictReader(file, dialect =sniffed_dialect)
+
+                csv_importer = DataImporter()
+                csv_importer.set_column_names(reader.fieldnames)
 
                 movie_count = 0
                 for row in reader:
-                    #print(row)  # Affiche les données de chaque ligne
-
-                    try:
-                        
-                        total_entries_str = str(row['entrees_totales_france']).replace(' ', '')
-                        total_entries =  int(total_entries_str) if isinstance (total_entries_str, int)  else 0
-
-                        release_date_france = dt.datetime.strptime(row['date_sortie_france'], DATE_FORMAT_STRING)
-
-                        movie = Movie(
-                            title=row['titre'],
-                            image_url=row['image_url'],
-                            synopsis=row['synopsis'],
-                            genre=row['genre_principale'],
-                            cast=row['acteurs'], 
-                            actual_entries_france = total_entries, 
-                            release_date_fr = release_date_france
-                        )
-                        movie.save()
-                        movie_count += 1
-                    except Exception as movie_error:
-                        print(f"Error inserting movie : {row['titre']}, {release_date_france}")
-                        continue  # Continue même si une ligne échoue
+                    if csv_importer.try_import_row(row) :
+                        movie_count+=1
 
             # Afficher un message de succès
             messages.success(request, f"{movie_count} movies successfully imported.")
