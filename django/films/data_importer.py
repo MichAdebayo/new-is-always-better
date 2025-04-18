@@ -6,7 +6,7 @@ class DataType(Enum) :
     FUSION_V3 = 2 
     ALLOCINE_INCREMENT = 3
 
-from .models import Movie, PredictionHistory, INITIAL_DATE_FORMAT_STRING, ALLOCINE_DATE_FORMAT_STRING
+from .models import Movie, PredictionHistory, INITIAL_DATE_FORMAT_STRING, ALLOCINE_DATE_FORMAT_STRING, ALLOCINE_DATE_FORMAT_STRING2
 import datetime as dt
 import locale
 from typing import Sequence
@@ -51,7 +51,7 @@ class DataImporter() :
             match self.data_type:
                 case DataType.JP_POX_FILMS : release_date_france = dt.datetime.strptime(row['date_sortie_france'], INITIAL_DATE_FORMAT_STRING)
                 case DataType.FUSION_V3 : release_date_france = dt.datetime.strptime(row['date_sortie_france'], INITIAL_DATE_FORMAT_STRING)
-                case DataType.ALLOCINE_INCREMENT : release_date_france = dt.datetime.strptime(row['release_date'], ALLOCINE_DATE_FORMAT_STRING)
+                case DataType.ALLOCINE_INCREMENT : release_date_france = CustomDate().parse_french_date(row['release_date'])
                 case _ : raise Exception('Unable to find release_date_france column')
         
         except :
@@ -129,3 +129,36 @@ class DataImporter() :
         except Exception as movie_error:
             print(f"Error inserting movie : {str_title}, {release_date_france}")
             return False
+        
+    
+class CustomDate():
+    def __init__(self) :
+        self.mois_fr = {
+                'janvier': 1, 'février': 2, 'mars': 3, 'avril': 4, 'mai': 5, 'juin': 6,
+                'juillet': 7, 'août': 8, 'septembre': 9, 'octobre': 10, 'novembre': 11, 'décembre': 12
+            }
+
+    def parse_french_date(self, date_str: str) -> dt.datetime:
+        date_str = date_str.strip().lower()
+        parts = date_str.split()
+
+        try:
+            if len(parts) == 3:  # ex: "7 août 2024"
+                day = int(parts[0])
+                month = self.mois_fr[parts[1]]
+                year = int(parts[2])
+            elif len(parts) == 2:  # ex: "août 2024"
+                day = 1
+                month = self.mois_fr[parts[0]]
+                year = int(parts[1])
+            elif len(parts) == 1:  # ex: "2024"
+                day = 1
+                month = 1
+                year = int(parts[0])
+            else:
+                raise ValueError("Format de date non reconnu")
+            
+            return dt.datetime(year, month, day)
+        
+        except Exception as e:
+            raise ValueError(f"Erreur lors du parsing de la date '{date_str}': {e}")

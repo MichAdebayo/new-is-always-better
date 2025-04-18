@@ -2,6 +2,7 @@ from django.db import models
 
 INITIAL_DATE_FORMAT_STRING = "%d/%m/%Y"
 ALLOCINE_DATE_FORMAT_STRING = "%d %B %Y"
+ALLOCINE_DATE_FORMAT_STRING2 = "%B %Y"
 
 class Movie(models.Model):
     title = models.CharField(max_length=200)
