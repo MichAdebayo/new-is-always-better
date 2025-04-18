@@ -7,7 +7,7 @@ from scrapy.spiders import CrawlSpider, Rule
 from scrapy.linkextractors import LinkExtractor
 
 class AllocineSpider(CrawlSpider):
-    name = "allocine"
+    name = "allocine_new_movies"
     allowed_domains = ["allocine.fr"]
     start_urls = ["https://allocine.fr/films/?page=" + str(x) for x in range(1, 3000)]
 

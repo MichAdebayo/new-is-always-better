@@ -1,10 +1,11 @@
 import shutil
 import os
-from allocinescraper.items import AllocinescraperItem
+from allocinescraper.items import AllocineNewMoviescraperItem
 from scrapy import signals
 from scrapy.spiders import CrawlSpider, Rule
 from scrapy.linkextractors import LinkExtractor
 import scrapy
+from datetime import datetime, timedelta
 
 class AllocineSpider(CrawlSpider):
     """
@@ -15,9 +16,9 @@ class AllocineSpider(CrawlSpider):
     title, synopsis, classification, ratings, and more. It also processes the box-office
     data and, if available, the trailer page to extract trailer views.
     """
-    name = "allocine"
+    name = "allocine_copy"
     allowed_domains = ["allocine.fr"]
-    start_urls = ["https://allocine.fr/films/?page=" + str(x) for x in range(1, 20)]
+    start_urls = ["https://www.allocine.fr/film/attendus/?page=" + str(x) for x in range(1,20)]
 
     # CrawlSpider rules:
     # Extract film detail links using an XPath selector and parse each film page.
@@ -61,9 +62,13 @@ class AllocineSpider(CrawlSpider):
         from a film detail page. It then constructs the URL for the box-office page and
         initiates a SplashRequest to render and process it.
         """
+        if "article" in response.url.lower():
+            self.logger.info(f"Skipping non-film URL containing 'article': {response.url}")
+            return
+
         self.logger.info(f"Scraping film page: {response.url}")
-        item = AllocinescraperItem()
         
+        item = AllocineNewMoviescraperItem()
         
         # Extract basic film details.
         item['film_title'] = response.css('div.titlebar-title::text').get('').strip()
@@ -77,8 +82,27 @@ class AllocineSpider(CrawlSpider):
         item['age_classification'] = classification.strip() if classification else ""
         
         # Extract additional metadata.
-        meta = response.css('div.meta-body')
-        item['release_date'] = meta.css('span.date::text').get()
+        # meta = response.css('div.entity-card-list div.meta div.meta-body')
+        meta = response.xpath('//div[@class="meta  "]/div[@class="meta-body"]')
+
+        if release_date_str := meta.css('span.date::text').get():
+            if parsed_release_date := self.parse_french_date(release_date_str):
+                today = datetime.now()
+                one_week_from_now = today + timedelta(days=7)
+
+                # Check if release is today or in the future
+                if today <= parsed_release_date <= one_week_from_now:
+                # if parsed_release_date >= today:
+                    item['release_date'] = parsed_release_date.date()
+                else:
+                    self.logger.info(f"Skipping movie {item.get('film_title')}. To be released: {parsed_release_date})")
+                    return  # Skip movies already released
+            else:
+                self.logger.warning(f"Could not parse release date: {release_date_str}")
+                item['release_date'] = None
+                return
+
+
         broadcast_category = response.xpath('//div[contains(@class, "meta-body-info")]//span[contains(@class, "meta-release-type")]/text()').get()
         item['broadcast_category'] = broadcast_category.strip() if broadcast_category else ""
         duration = meta.css('.meta-body-info::text').re_first(r'\d+h\s?\d*min')
@@ -138,53 +162,19 @@ class AllocineSpider(CrawlSpider):
         item['awards'] = response.xpath('//div[contains(@class, "item")][.//span[contains(@class, "what") and contains(text(), "Récompenses")]]//span[contains(@class, "that")]/text()').get()
         item['budget'] = response.xpath('//div[contains(@class, "item")][.//span[contains(@class, "what") and contains(text(), "Budget")]]//span[contains(@class, "that")]/text()').get()
         
-        # Construct the URL for the film box-office page.
-        film_box_office_url = response.url.replace('_gen_cfilm=', '-').replace('.html', '/') + 'box-office/'
-        
-        yield scrapy.Request(
-            url=film_box_office_url,
-            callback=self.parse_box_office_page,
-            meta={'item': item},
-            dont_filter=True)
-
-    def parse_box_office_page(self, response):
-        """
-        Parse the box-office page for a film to extract financial data and then process the trailer.
-
-        This method uses XPath selectors to extract box-office data from France and US sections.
-        It then attempts to extract a relative trailer URL to further process the trailer page.
-        """
-        item = response.meta['item']
-        
-        # Extract the "Box Office France" section.
-        france_section = response.xpath('//section[contains(.//h2/text(), "Box Office France")]')
-        # Extract the "Box Office US" section.
-        us_section = response.xpath('//section[contains(.//h2/text(), "Box Office US")]')
-        
-        if france_row := france_section.xpath('.//table[contains(@class, "box-office-table")]/tbody/tr[1]'):
-            self.extract_entry_and_entry_week(france_row, item, 'fr_entry_week', 'fr_entries')
-        else:
-            item['fr_entry_week'] = item['fr_entries'] = ''
-
-        if us_row := us_section.xpath('.//table[contains(@class, "box-office-table")]/tbody/tr[1]'):
-            self.extract_entry_and_entry_week(us_row, item, 'us_entry_week', 'us_entries')
-        else:
-            item['us_entry_week'] = item['us_entries'] = ''
-
-        # Extract the relative trailer URL.
-        trailer_relative_url = response.xpath('//div[contains(@class, "roller-slider")]//a[contains(@class, "trailer roller-item")]/@href').get()
-        if trailer_relative_url:
+        if trailer_relative_url := response.xpath(
+            '//div[contains(@class, "roller-slider")]//a[contains(@class, "trailer roller-item")]/@href'
+        ).get():
             # Build the full trailer URL.
             trailer_url = f'https://www.allocine.fr{trailer_relative_url}'
             yield scrapy.Request(
-                url=trailer_url,
-                callback=self.parse_trailer_page,
-                meta={'item': item},
-                dont_filter=True)
-
+            url=trailer_url,
+            callback=self.parse_trailer_page,
+            meta={'item': item},
+            dont_filter=True)
         else:
             self.logger.warning(f"No trailer URL found for {item.get('film_title', 'unknown movie')}")
-            yield item
+            yield item  
 
     def parse_trailer_page(self, response):
         """
@@ -198,24 +188,25 @@ class AllocineSpider(CrawlSpider):
         item['trailer_views'] = trailer_views.strip().replace(' ', ',') if trailer_views else ""
         yield item
 
-    def extract_entry_and_entry_week(self, selector, item, key_week, key_entries):
-        """
-        Extract the entry week and the entries (ticket count) from a given table row.
+    def parse_french_date(self, french_date_str):
 
-        :param selector: The selector for the table row containing the box-office data.
-        :param item: The item dictionary to update.
-        :param key_week: The key to store the week info.
-        :param key_entries: The key to store the entries info.
-        """
-        fr_week_element = selector.css('td.responsive-table-column.first-col span::text')
-        item[key_week] = fr_week_element.get().strip() if fr_week_element else None
-        item[key_entries] = selector.xpath('.//td[@data-heading="Entrées"]/text()').get(default='').strip()
-
-    def handle_splash_error(self, failure):
-        """
-        Handle errors encountered during a SplashRequest.
-
-        Logs the error and yields the current item to avoid data loss.
-        """
-        self.logger.error(f"Error with Splash: {repr(failure)}")
-        yield failure.request.meta['item']
+            FRENCH_MONTHS = {
+            "janvier": "January",
+            "février": "February",
+            "mars": "March",
+            "avril": "April",
+            "mai": "May",
+            "juin": "June",
+            "juillet": "July",
+            "août": "August",
+            "septembre": "September",
+            "octobre": "October",
+            "novembre": "November",
+            "décembre": "December"
+        }
+            for fr, en in FRENCH_MONTHS.items():
+                french_date_str = french_date_str.lower().replace(fr, en)
+            try:
+                return datetime.strptime(french_date_str.strip(), "%d %B %Y")
+            except ValueError:
+                return None

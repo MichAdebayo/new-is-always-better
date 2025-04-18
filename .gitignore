@@ -118,3 +118,5 @@ httpcache/
 # png
 .png
 *.png/
+
+local.settings.json

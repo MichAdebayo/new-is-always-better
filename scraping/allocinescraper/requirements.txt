@@ -1,0 +1,5 @@
+scrapy
+scrapy-splash
+azure-storage-blob
+python-dotenv
+azure-storage-blob

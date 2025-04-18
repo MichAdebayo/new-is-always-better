@@ -12,11 +12,11 @@ BOT_NAME = "allocinescraper"
 SPIDER_MODULES = ["allocinescraper.spiders"]
 NEWSPIDER_MODULE = "allocinescraper.spiders"
 
-SPLASH_URL = 'http://localhost:8050' 
+#SPLASH_URL = 'http://localhost:8050' 
 
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
 #USER_AGENT = "allocinescraper (+http://www.yourdomain.com)"
-USER_AGENT = 'Mozilla/5.0 (iPad; CPU OS 12_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148',
+USER_AGENT = 'Mozilla/5.0 (iPad; CPU OS 12_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148'
 
 # Obey robots.txt rules
 ROBOTSTXT_OBEY = True
@@ -48,30 +48,30 @@ LOG_LEVEL = 'INFO'
 
 # Enable or disable spider middlewares
 # See https://docs.scrapy.org/en/latest/topics/spider-middleware.html
-# SPIDER_MIDDLEWARES = {
-#     "allocinescraper.middlewares.AllocinescraperSpiderMiddleware": 543,
-# }
-
 SPIDER_MIDDLEWARES = {
-   'scrapy_splash.SplashDeduplicateArgsMiddleware': 100,
-}
+     "allocinescraper.middlewares.AllocinescraperSpiderMiddleware": 543,
+ }
+
+#SPIDER_MIDDLEWARES = {
+#   'scrapy_splash.SplashDeduplicateArgsMiddleware': 100,
+#}
 
 # Enable or disable downloader middlewares
 # See https://docs.scrapy.org/en/latest/topics/downloader-middleware.html
-# DOWNLOADER_MIDDLEWARES = {
-#    "allocinescraper.middlewares.AllocinescraperDownloaderMiddleware": 543,
-# }
-
 DOWNLOADER_MIDDLEWARES = {
-    'scrapy_splash.SplashCookiesMiddleware': 723,
-    'scrapy_splash.SplashMiddleware': 725,
-    'scrapy.downloadermiddlewares.httpcompression.HttpCompressionMiddleware': 810,
-}
+    "allocinescraper.middlewares.AllocinescraperDownloaderMiddleware": 543,
+ }
+
+#DOWNLOADER_MIDDLEWARES = {
+#    'scrapy_splash.SplashCookiesMiddleware': 723,
+#    'scrapy_splash.SplashMiddleware': 725,
+#    'scrapy.downloadermiddlewares.httpcompression.HttpCompressionMiddleware': 810,
+#}"""
 
 
-SPLASH_SLOT_POLICY = 'multiple_slots'
-DUPEFILTER_CLASS = 'scrapy_splash.SplashAwareDupeFilter'
-HTTPCACHE_STORAGE = 'scrapy_splash.SplashAwareFSCacheStorage'
+#SPLASH_SLOT_POLICY = 'scrapy_splash.SlotPolicy.PER_DOMAIN'
+#DUPEFILTER_CLASS = 'scrapy_splash.SplashAwareDupeFilter'
+#HTTPCACHE_STORAGE = 'scrapy_splash.SplashAwareFSCacheStorage'
 
 # Enable or disable extensions
 # See https://docs.scrapy.org/en/latest/topics/extensions.html
@@ -100,16 +100,17 @@ ITEM_PIPELINES = {
 
 # Enable and configure HTTP caching (disabled by default)
 # See https://docs.scrapy.org/en/latest/topics/downloader-middleware.html#httpcache-middleware-settings
-HTTPCACHE_ENABLED = True
+#HTTPCACHE_ENABLED = True
 #HTTPCACHE_EXPIRATION_SECS = 86400
 #HTTPCACHE_DIR = "httpcache"
 #HTTPCACHE_IGNORE_HTTP_CODES = []
 #HTTPCACHE_STORAGE = "scrapy.extensions.httpcache.FilesystemCacheStorage"
 
 # Set settings whose default value is deprecated to a future-proof value
-TWISTED_REACTOR = "twisted.internet.asyncioreactor.AsyncioSelectorReactor"
+#TWISTED_REACTOR = "twisted.internet.asyncioreactor.AsyncioSelectorReactor"
 FEED_EXPORT_ENCODING = "utf-8"
 
+"""
 FEED_EXPORT_FIELDS = ['film_title', 'film_url', 'film_image_url' , 'release_date', 
                       'duration', 'age_classification', 'producers', 'director',
                       'top_stars', 'press_rating', 'viewer_rating','languages',
@@ -117,4 +118,4 @@ FEED_EXPORT_FIELDS = ['film_title', 'film_url', 'film_image_url' , 'release_date
                       'fr_entry_week', 'us_entry_week','fr_entries',  'us_entries', 
                       'awards', 'budget', 'associated_genres', 'press_critics_count',
                       'viewer_critics_count', 'broadcast_category', 'trailer_views', 'synopsis', 
-]
+]"""
