@@ -110,7 +110,7 @@ ITEM_PIPELINES = {
 #TWISTED_REACTOR = "twisted.internet.asyncioreactor.AsyncioSelectorReactor"
 FEED_EXPORT_ENCODING = "utf-8"
 
-"""
+
 FEED_EXPORT_FIELDS = ['film_title', 'film_url', 'film_image_url' , 'release_date', 
                       'duration', 'age_classification', 'producers', 'director',
                       'top_stars', 'press_rating', 'viewer_rating','languages',
@@ -118,4 +118,4 @@ FEED_EXPORT_FIELDS = ['film_title', 'film_url', 'film_image_url' , 'release_date
                       'fr_entry_week', 'us_entry_week','fr_entries',  'us_entries', 
                       'awards', 'budget', 'associated_genres', 'press_critics_count',
                       'viewer_critics_count', 'broadcast_category', 'trailer_views', 'synopsis', 
-]"""
+]
