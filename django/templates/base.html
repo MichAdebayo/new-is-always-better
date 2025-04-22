@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en" x-data="{ sidebarOpen: false }" x-cloak>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sometimes, new is better - Cinema Management</title>
+    {% load static %}
+    {% load tailwind_tags %}
+    {% tailwind_css %}
+
+    <!-- Alpine.js CDN -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <style>
+        /* Le synopsis est caché par défaut */
+        .synopsis {
+            display: none;
+            position: absolute;
+            top: 0;
+            left: 100%;
+            width: 300px;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+        }
+
+        /* Le synopsis apparaît au survol de la ligne */
+        tr:hover .synopsis {
+            display: block;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+
+<div class="min-h-screen flex flex-col sm:flex-row">
+    <!-- Mobile Header -->
+    <header class="bg-white shadow-sm sm:hidden flex items-center justify-between px-4 py-3">
+        <h2 class="text-lg font-semibold text-gray-800">
+            {% if active_tab == 'dashboard' %}Movie Selection Dashboard
+            {% elif active_tab == 'history' %}Prediction History
+            {% elif active_tab == 'financials' %}Financial Analytics
+            {% else %}Settings{% endif %}
+        </h2>
+        <button @click="sidebarOpen = !sidebarOpen" class="p-2 rounded hover:bg-gray-100">
+            <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M4 6h16M4 12h16M4 18h16"/>
+            </svg>
+        </button>
+    </header>
+
+    <!-- Sidebar -->
+    <aside :class="sidebarOpen ? 'block' : 'hidden sm:block'" class="w-full sm:w-64 bg-white shadow-lg sm:relative absolute z-50 sm:z-auto sm:h-auto h-full sm:translate-x-0">
+        <div class="p-4">
+            <h1 class="text-2xl font-bold text-gray-800">Sometimes,<br/>new is better</h1>
+            <p class="text-sm text-gray-500">Cinema Management</p>
+        </div>
+        <nav class="mt-8">
+            <a href="{% url 'dashboard' %}"
+               class="w-full flex items-center px-4 py-3 {% if active_tab == 'dashboard' %}bg-blue-50 text-blue-600{% else %}text-gray-600 hover:bg-gray-50{% endif %}">
+                <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16"/>
+                </svg>
+                Dashboard
+            </a>
+            <a href="{% url 'top_ten_list' %}"
+               class="w-full flex items-center px-4 py-3 {% if active_tab == 'dashboard' %}bg-blue-50 text-blue-600{% else %}text-gray-600 hover:bg-gray-50{% endif %}">
+        
+                <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                         d="M3 4.5h14.25M3 9h9.75M3 13.5h5.25m5.25-.75L17.25 9m0 0L21 12.75M17.25 9v12" />
+                </svg>      
+                Top ten
+            </a>
+            <a href="{% url 'history' %}"
+               class="w-full flex items-center px-4 py-3 {% if active_tab == 'history' %}bg-blue-50 text-blue-600{% else %}text-gray-600 hover:bg-gray-50{% endif %}">
+                <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                History
+            </a>
+            <a href="{% url 'financials' %}"
+               class="w-full flex items-center px-4 py-3 {% if active_tab == 'financials' %}bg-blue-50 text-blue-600{% else %}text-gray-600 hover:bg-gray-50{% endif %}">
+                <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                </svg>
+                Financials
+            </a>
+            <a href="{% url 'settings' %}"
+            class="w-full flex items-center px-4 py-3 {% if active_tab == 'settings' %}bg-blue-50 text-blue-600{% else %}text-gray-600 hover:bg-gray-50{% endif %}">
+             <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                       d="M3 6l3 3m0 0l3-3m-3 3v10a2 2 0 002 2h8a2 2 0 002-2V9l-3 3m0 0l-3-3"/>
+             </svg>
+             Settings
+         </a>
+        </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <div class="flex-1 overflow-auto">
+        <main class="p-6">
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+</div>
+
+</body>
+</html>
