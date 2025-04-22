@@ -10,18 +10,26 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
+from dotenv import load_dotenv
+
 import os
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# Charger les variables du fichier .env
+load_dotenv(BASE_DIR / '.env')
+
+ACCOUNT_URL = os.getenv("ACCOUNT_URL", "fake_account_url")
+CONTAINER_NAME = os.getenv("CONTAINER_NAME", "fake_container_name")
+BLOB_NAME =  os.getenv("BLOB_NAME", "fake_blob_name")
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "django-insecure-54@ax-wu_z)w+opldwlk*1zum-5zj@=f_!ir4bb6+5m3#4t#n0"
+SECRET_KEY = os.getenv("SECRET_KEY", "fake_secret_key")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True

@@ -28,3 +28,5 @@ types-python-dateutil==2.9.0.20241206
 tzdata==2025.2
 urllib3==2.3.0
 whitenoise==6.9.0
+python-dotenv==1.1.0
+azure-storage-blob==12.25.1

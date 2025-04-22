@@ -229,3 +229,20 @@ def import_csv(request):
                 print(f"Temporary file deleted: {file_path}")
 
     return render(request, 'films/settings.html')
+
+
+from azure_blob_getter import AzureBlobStorageGetter
+def update_data(request):
+    """
+        don't forget : pip install azure-storage-blob 
+    """
+    if request.method == 'POST':
+        
+        azure_blob_getter = AzureBlobStorageGetter()
+        dataframe = azure_blob_getter.get_storage_content()
+        messages.success(request, 'Bonne nouvelle')
+        
+
+    return render(request, 'films/settings.html')
+
+   

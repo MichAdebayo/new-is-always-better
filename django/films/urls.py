@@ -11,6 +11,7 @@ urlpatterns = [
     path('history/', views.history, name='history'),
     path('financials/', views.financials, name='financials'),
     path('settings/', views.settings, name='settings'),
+    path('update_data/', views.update_data, name='update_data'),
     path('import_csv/', views.import_csv, name='import_csv'),
 ]
 

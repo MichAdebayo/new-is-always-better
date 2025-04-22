@@ -3,6 +3,7 @@
 {% block content %}
 <h2 class="text-xl font-semibold text-gray-800">Settings</h2>
 
+
 <!-- Formulaire pour télécharger un fichier CSV -->
 <form action="{% url 'import_csv' %}" method="POST" enctype="multipart/form-data">
     {% csrf_token %}
@@ -14,6 +15,21 @@
 
     <button type="submit" class="bg-blue-600 text-white py-2 px-4 rounded">Upload</button>
 </form>
+
+<br/>
+<hr/>
+
+<form action="{% url 'update_data' %}" method="POST">
+  {% csrf_token %}
+  
+  <div class="mb-4">
+      <label class="block text-gray-700">Update Data from blog storage</label>
+  </div>
+
+  <button type="submit" class="bg-blue-600 text-white py-2 px-4 rounded">Update</button>
+
+</form>
+
 {% if messages %}
   <div id="message-container" class="flex justify-center items-center py-6">
     {% for message in messages %}
