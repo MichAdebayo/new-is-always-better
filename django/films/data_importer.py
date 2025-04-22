@@ -1,7 +1,6 @@
 from enum import Enum
 
 class DataType(Enum) :
-    UNDEFINED = 0
     JP_POX_FILMS = 1
     FUSION_V3 = 2 
     ALLOCINE_INCREMENT = 3
