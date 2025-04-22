@@ -17,8 +17,6 @@ class FirstPredictor() :
             case 1 : 
                 return self._predict_version_1(movie_title)
             
-            case 2 : 
-                return self._predict_version_2(movie_title)
         
     def _predict_version_0(self, movie_title: str) -> tuple[int, int]:
         """
@@ -66,22 +64,6 @@ class FirstPredictor() :
        
         return  (pred_int, error)
     
-    def _predict_version_2(self, movie_title: str) -> tuple[int, int]:
-        """
-        csv origin = fusionv3.csv
-        """
+    
 
-        fusion_V3_model: Pipeline  = joblib.load("leo_pipeline_14_avril.joblib")
-
-        # chargement data 
-        import pandas as pd
-        original_csv = pd.read_csv('static/films_modelisation_leo_14_avril.csv')
-
-        movie_row = original_csv[original_csv['titre']== movie_title].iloc[[0]]
-        prediction = fusion_V3_model.predict(movie_row)
-
-        pred_int = int(prediction[0])
-        error = int(pred_int/5)
-       
-        return  (pred_int, error)
     
