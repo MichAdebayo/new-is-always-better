@@ -111,4 +111,18 @@ db.sqlite3
 
 # gitignore
 .gitignore
+<<<<<<< HEAD
 theme/
+=======
+
+# cached http
+httpcache/
+.scrapy/httpcache/
+.scrapy/
+
+# png
+.png
+*.png/
+
+local.settings.json
+>>>>>>> FP-12-système-de-scrapping-automatique

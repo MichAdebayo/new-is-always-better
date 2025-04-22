@@ -1,0 +1,5 @@
+# Chargé automatiquement au démarrage de la Function
+Import-Module Az.Accounts
+Import-Module Az.ContainerInstance
+Import-Module Az.Resources
+Import-Module Az.Storage
