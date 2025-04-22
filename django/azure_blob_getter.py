@@ -30,8 +30,16 @@ class AzureBlobStorageGetter() :
 
         dataframe = None
 
-        try :
-            dataframe = pd.read_csv(io.BytesIO(downloaded_blob))
+        try:
+           
+            dataframe = pd.read_csv(io.BytesIO(downloaded_blob), encoding="utf-8-sig", encoding_errors="replace") 
+            first_line = dataframe.columns
+            first_value = first_line.values[0]
+            
+             # c'est MAAAAAL de faire comme ça !!!
+            first_value = first_value[2:]
+            dataframe.columns.values[0] = first_value
+
         except Exception as ex :
             print( ex.__doc__ )
 
