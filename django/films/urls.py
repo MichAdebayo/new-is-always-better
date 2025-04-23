@@ -11,6 +11,7 @@ urlpatterns = [
     path('top-ten/', views.top_ten_list, name='top_ten_list'),
     #path('history/', views.history, name='history'),
     path('recettes/', recette_view.recettes_view, name='recettes'),
+    path('recettes/update/', recette_view.update_recettes, name='update_recettes'),
     path('financials/', views.financials, name='financials'),
     path('settings/', views.settings, name='settings'),
     path('update_data/', views.update_data, name='update_data'),
