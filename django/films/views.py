@@ -64,16 +64,18 @@ def top_ten_list(request):
         predictions = movie.predictions.all()
         if len(predictions) == 0 :
             (prediction, error) = predictor.predict(movie.title, "")
-
-            new_entry = PredictionHistory(
-                movie_id = movie.id, 
-                first_week_predicted_entries_france = prediction, 
-                prediction_error = error,
-                model_version = predictor.model_version,
-                date = today
-            )
-            new_entry.save()
-            movie.last_prediction = prediction
+            if (prediction, error) != (0,0) :
+                new_entry = PredictionHistory(
+                    movie_id = movie.id, 
+                    first_week_predicted_entries_france = prediction, 
+                    prediction_error = error,
+                    model_version = predictor.model_version,
+                    date = today
+                )
+                new_entry.save()
+                movie.last_prediction = prediction
+            else : 
+                movie.last_prediction = 0
         else :
             movie.last_prediction = predictions.last().first_week_predicted_entries_france
 
