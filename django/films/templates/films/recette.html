@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div x-data="{}" class="bg-white rounded-lg shadow-md">
+    <div class="p-6">
+        <h2 class="text-xl font-semibold text-gray-800 mb-4">
+            Recette du {{ broadcast.start_date }} au {{ broadcast.end_date }}
+        </h2>
+
+        <!-- Table on larger screens -->
+        <div class="hidden md:block overflow-x-auto">
+            <table class="w-full table-auto">
+                <thead>
+                    <tr class="border-b text-left">
+                        <th class="py-3 px-4">Day</th>
+                        <th class="py-3 px-4 text-right">Room1 predicted</th>
+                        <th class="py-3 px-4 text-right">Room1 actual</th>
+                        <th class="py-3 px-4 text-right">Room1 recette</th>
+                        <th class="py-3 px-4 text-right">Room2 predicted</th>
+                        <th class="py-3 px-4 text-right">Room2 actual</th>
+                        <th class="py-3 px-4 text-right">Room2 recette</th>
+                        <th class="py-3 px-4 text-right">Daily consumption</th>
+                        <th class="py-3 px-4 text-right">Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for recette in recettes %}
+                    <tr class="border-b">
+                        <td class="py-3 px-4">{{ recette.day }}</td>
+                        <td class="py-3 px-4 text-right">{{ recette.predict_1 }}</td>
+                        <td class="py-3 px-4 text-right">{{ recette.actual_1 }}</td>
+                        <td class="py-3 px-4 text-right">{{ recette.amount_1 }} €</td>
+                        <td class="py-3 px-4 text-right">{{ recette.predict_2 }}</td>
+                        <td class="py-3 px-4 text-right">{{ recette.actual_2 }}</td>
+                        <td class="py-3 px-4 text-right">{{ recette.amount_2 }} €</td>
+                        <td class="py-3 px-4 text-right">{{ recette.consumptions }} €</td>
+                        <td class="py-3 px-4 text-right">{{ recette.total }} €</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Mobile cards -->
+        <div class="md:hidden space-y-4">
+            {% for recette in recettes %}
+            <div class="border rounded-lg p-4 shadow-sm">
+                <h3 class="font-semibold text-gray-800">Jour : {{ recette.day }}</h3>
+                <div class="text-sm text-gray-700 mt-2 space-y-1">
+                    <p><span class="font-medium">Room 1</span></p>
+                    <p>Prédit : {{ recette.predict_1 }}</p>
+                    <p>Actuel : {{ recette.actual_1 }}</p>
+                    <p>Bénéfice : {{ recette.amount_1 }} €</p>
+
+                    <p class="mt-3"><span class="font-medium">Room 2</span></p>
+                    <p>Prédit : {{ recette.predict_2 }}</p>
+                    <p>Actuel : {{ recette.actual_2 }}</p>
+                    <p>Bénéfice : {{ recette.amount_2 }} €</p>
+
+                    <p class="mt-3">Consommation : {{ recette.consumptions }} €</p>
+                    <p>Total : {{ recette.total }} €</p>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}
