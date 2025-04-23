@@ -152,9 +152,12 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 
-# ubuntu local npm 
-NPM_BIN_PATH = "/usr/bin/npm"
-# windows local npm
-# NPM_BIN_PATH = "C:/Program Files/nodejs/npm.cmd"
+import platform
+
+if platform.system() == "Windows":
+    NPM_BIN_PATH = "C:/Program Files/nodejs/npm.cmd"
+else:
+    NPM_BIN_PATH = "/usr/bin/npm"
+
 
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
