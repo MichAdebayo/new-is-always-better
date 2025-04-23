@@ -11,28 +11,37 @@
         <div class="hidden md:block overflow-x-auto">
             <table class="w-full table-auto">
                 <thead>
+                    <!-- grouper les colonnes par salle -->
                     <tr class="border-b text-left">
-                        <th class="py-3 px-4">Day</th>
-                        <th class="py-3 px-4 text-right">Room1 predicted</th>
-                        <th class="py-3 px-4 text-right">Room1 actual</th>
-                        <th class="py-3 px-4 text-right">Room1 recette</th>
-                        <th class="py-3 px-4 text-right">Room2 predicted</th>
-                        <th class="py-3 px-4 text-right">Room2 actual</th>
-                        <th class="py-3 px-4 text-right">Room2 recette</th>
-                        <th class="py-3 px-4 text-right">Daily consumption</th>
-                        <th class="py-3 px-4 text-right">Total</th>
+                        <th class="py-3 px-4 align-bottom" rowspan="2">Jour</th>
+                        <th class="py-3 px-4 text-center" colspan="3">Salle 1</th>
+                        <th class="py-3 px-4 text-center" colspan="3">Salle 2</th>
+                        <th class="py-3 px-4 text-center" rowspan="2">Consommations</th>
+                        <th class="py-3 px-4 text-center" rowspan="2">Total</th>
+                    </tr>
+                    <!-- colonnes détaillées -->
+                    <tr class="border-b text-left">
+                        <th class="py-2 px-4 text-center">Prévision</th>
+                        <th class="py-2 px-4 text-center">Entrées</th>
+                        <th class="py-2 px-4 text-center">Recette</th>
+                        <th class="py-2 px-4 text-center">Prévision</th>
+                        <th class="py-2 px-4 text-center">Entrées</th>
+                        <th class="py-2 px-4 text-center">Recette</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for recette in recettes %}
                     <tr class="border-b">
                         <td class="py-3 px-4">{{ recette.day }}</td>
+                         <!-- room 1 -->
                         <td class="py-3 px-4 text-right">{{ recette.predict_1 }}</td>
                         <td class="py-3 px-4 text-right">{{ recette.actual_1 }}</td>
                         <td class="py-3 px-4 text-right">{{ recette.amount_1 }} €</td>
+                         <!-- room 2 -->
                         <td class="py-3 px-4 text-right">{{ recette.predict_2 }}</td>
                         <td class="py-3 px-4 text-right">{{ recette.actual_2 }}</td>
                         <td class="py-3 px-4 text-right">{{ recette.amount_2 }} €</td>
+                         <!-- other -->
                         <td class="py-3 px-4 text-right">{{ recette.consumptions }} €</td>
                         <td class="py-3 px-4 text-right">{{ recette.total }} €</td>
                     </tr>

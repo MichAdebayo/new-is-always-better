@@ -1,31 +1,54 @@
 from django.shortcuts import render
-from .models import Recette, BroadCast
 from datetime import date, timedelta
-from days_of_week_utils import get_start_wednesday, get_week_days
+from .models import Recette, Broadcast
+from .days_of_week_utils import get_start_wednesday, get_week_days
 
 def recettes_view(request):
 
-    start_date = end_date = date.today()
-    recettes = Recette.objects.order_by('date')
-    
-    if recettes.exists():
-        start_date = recettes.first().date
-        end_date = recettes.last().date
-    else:
-        create_current_week(date.today())
-        start_date = end_date = date.today()
+    current_date = date.today()
 
+    broadcast = get_or_create_broadcast(current_date)
+    recettes = get_or_create_recettes(broadcast)
+    
     context = {
         'recettes': recettes,
-        'broadcast': {
-            'start_date': start_date,
-            'end_date': end_date,
-            'room_1': recettes.first().room_1_movie.title if recettes else '',
-            'room_2': recettes.first().room_2_movie.title if recettes else ''
-        }
+        'broadcast': broadcast
     }
-    return render(request, 'recettes/liste_recettes.html', context)
+    return render(request, 'films/recette.html', context)
 
-def create_current_week(current_date : date):
+def get_or_create_broadcast(current_date : date) -> Broadcast:
+    broadcast = Broadcast.objects.filter(
+        start_date__lte=current_date, 
+        end_date__gte=current_date
+    ).first()
+
+    if broadcast :
+        return broadcast
+
     start_wednesday = get_start_wednesday(current_date)
     week_days = get_week_days(start_wednesday)
+    broadcast = Broadcast(
+        start_date = week_days[0],
+        end_date = week_days[6]
+    )
+    broadcast.save()
+    return broadcast
+
+def get_or_create_recettes(broadcast : Broadcast ) -> list[Recette]:
+    results = Recette.objects.filter(broadcast_id=broadcast.id)
+    if results.count() ==7 :
+        return list(results)
+
+    ticket_price = 10.0
+    week_days = get_week_days(broadcast.start_date)
+
+    recette_list = []
+    for day_date in week_days :
+        recette = Recette(
+            broadcast_id = broadcast.id,
+            date = day_date, 
+            ticket_price=ticket_price)  
+        recette.save()   
+        recette_list.append(recette) 
+
+    return recette_list
