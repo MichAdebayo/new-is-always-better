@@ -1,0 +1,69 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div x-data="{}" class="bg-white rounded-lg shadow-md">
+    <div class="p-6">
+        <h2 class="text-xl font-semibold text-gray-800 mb-4">Prediction History</h2>
+
+        <!-- Table on larger screens -->
+        <div class="hidden md:block overflow-x-auto">
+            <table class="w-full table-auto">
+                <thead>
+                    <tr class="border-b text-left">
+                        <th class="py-3 px-4">Movie</th>
+                        <th class="py-3 px-4 text-right">Predicted</th>
+                        <th class="py-3 px-4 text-right">Actual</th>
+                        <th class="py-3 px-4 text-right">RMSE</th>
+                        <th class="py-3 px-4">Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for prediction in prediction_history %}
+                    <tr class="border-b">
+                        <td class="py-3 px-4">{{ prediction.movie.title }}</td>
+                        <td class="py-3 px-4 text-right">{{ prediction.predicted_attendance }}</td>
+                        <td class="py-3 px-4 text-right">{{ prediction.actual_attendance }}</td>
+                        <td class="py-3 px-4 text-right">
+                            <span class="px-2 py-1 rounded-full text-sm 
+                                {% if prediction.accuracy >= 90 %}
+                                    bg-green-100 text-green-800
+                                {% else %}
+                                    bg-yellow-100 text-yellow-800
+                                {% endif %}">
+                                {{ prediction.accuracy }}%
+                            </span>
+                        </td>
+                        <td class="py-3 px-4">{{ prediction.date }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Mobile cards -->
+        <div class="md:hidden space-y-4">
+            {% for prediction in prediction_history %}
+            <div class="border rounded-lg p-4 shadow-sm">
+                <h3 class="font-semibold text-gray-800">{{ prediction.movie.title }}</h3>
+                <p class="text-sm text-gray-500 mb-2">{{ prediction.date }}</p>
+                <div class="text-sm text-gray-700 space-y-1">
+                    <p><span class="font-medium">Predicted:</span> {{ prediction.predicted_attendance }}</p>
+                    <p><span class="font-medium">Actual:</span> {{ prediction.actual_attendance }}</p>
+                    <p>
+                        <span class="font-medium">Accuracy:</span>
+                        <span class="px-2 py-1 rounded-full text-sm inline-block 
+                            {% if prediction.accuracy >= 90 %}
+                                bg-green-100 text-green-800
+                            {% else %}
+                                bg-yellow-100 text-yellow-800
+                            {% endif %}">
+                            {{ prediction.accuracy }}%
+                        </span>
+                    </p>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}
