@@ -15,23 +15,13 @@ class DataImporter() :
     def __init__(self) :
         self.data_type = DataType.UNDEFINED
 
-    def set_column_names(self, column_names: Sequence[str]) :
-        if 'genre_principale' in column_names or 'genre' in column_names:
-            if 'titre' in column_names : 
-                self.data_type = DataType.JP_POX_FILMS
-                return 
-
-            if 'titre_jpbox' in column_names :
-                self.data_type = DataType.FUSION_V3
-                return
-
-        if 'film_title' in column_names or 'titre' in column_names:
-            if 'associated_genres' in column_names:
-                self.data_type = DataType.ALLOCINE_INCREMENT
-                # Définir la locale en français (à adapter selon ton OS)
-                locale.setlocale(locale.LC_TIME, 'fr_FR.UTF-8')  # Linux / macOS
-                # locale.setlocale(locale.LC_TIME, 'French_France.1252')  # Windows
-                return
+    def set_column_names(self, column_names: Sequence[str]):
+        print(f"Colonnes détectées: {column_names}")  # Ajoutez cette ligne pour le débogage
+    
+        if 'film_title' in column_names and 'associated_genres' in column_names:
+            self.data_type = DataType.ALLOCINE_INCREMENT
+            print("Format détecté: ALLOCINE_INCREMENT")
+            return
 
         self.data_type = DataType.UNDEFINED
      
