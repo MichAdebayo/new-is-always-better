@@ -1,0 +1,15 @@
+artifact_uri: file:///home/nicolascassonnet/Documents/WORK/film-prediction/MLFlow/mlruns/692666111458774218/3ac7349753bd43da9f56da1cfc39896f/artifacts
+end_time: 1743585843930
+entry_point_name: ''
+experiment_id: '692666111458774218'
+lifecycle_stage: active
+run_id: 3ac7349753bd43da9f56da1cfc39896f
+run_name: trusting-ox-203
+run_uuid: 3ac7349753bd43da9f56da1cfc39896f
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1743585843802
+status: 4
+tags: []
+user_id: nicolascassonnet
