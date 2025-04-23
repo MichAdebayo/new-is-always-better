@@ -36,7 +36,7 @@ class AzureBlobStorageGetter() :
             first_line = dataframe.columns
             first_value = first_line.values[0]
             
-             # c'est MAAAAAL de faire comme ça !!!
+             # c'est MAAAAAL de faire comme ça !!!(tinquiete c'est que le debut)
             first_value = first_value[2:]
             dataframe.columns.values[0] = first_value
 

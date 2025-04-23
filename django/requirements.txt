@@ -30,3 +30,5 @@ urllib3==2.3.0
 whitenoise==6.9.0
 python-dotenv==1.1.0
 azure-storage-blob==12.25.1
+joblib==1.4.2
+scikit-learn==1.6.1
