@@ -1,0 +1,15 @@
+artifact_uri: file:///home/nicolascassonnet/Documents/WORK/film-prediction/MLFlow/mlruns/692666111458774218/bbad3fec05dc4f40b9d9768dd9cbfa0c/artifacts
+end_time: 1743585808806
+entry_point_name: ''
+experiment_id: '692666111458774218'
+lifecycle_stage: active
+run_id: bbad3fec05dc4f40b9d9768dd9cbfa0c
+run_name: rambunctious-foal-49
+run_uuid: bbad3fec05dc4f40b9d9768dd9cbfa0c
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1743585808630
+status: 4
+tags: []
+user_id: nicolascassonnet
