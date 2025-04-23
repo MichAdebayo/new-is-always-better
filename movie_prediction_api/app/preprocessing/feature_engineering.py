@@ -577,14 +577,13 @@ def add_licence_features(df):
         "assassin's creed", 'sonic', 'mortal kombat', 'uncharted', 'warcraft'
     ]
     
-    # Helper function
+    
     def contains_any(text, keywords):
         if not isinstance(text, str):
             return False
         text = text.lower()
         return any(f in text for f in keywords)
     
-    # Create franchise feature columns
     df['is_superhero_franchise'] = df['film_title'].apply(
         lambda x: int(contains_any(x, superhero_franchises)) if pd.notna(x) else 0
     )
@@ -601,7 +600,6 @@ def add_licence_features(df):
         lambda x: int(contains_any(x, gaming_franchises)) if pd.notna(x) else 0
     )
     
-    # Any type of known licence
     df['is_licence'] = (
         df['is_superhero_franchise'] | 
         df['is_animation_franchise'] | 
@@ -609,7 +607,6 @@ def add_licence_features(df):
         df['is_gaming_franchise']
     ).astype(int)
     
-    # Sequel detection
     sequel_indicators = [
         '2', '3', '4', '5', 'ii', 'iii', 'iv', 'v', 'vi', 
         'le retour', 'la suite', 'chapitre', 'épisode', 'saga', 
@@ -687,12 +684,10 @@ def parse_year(year_str):
     if isinstance(year_str, (int, float)):
         return int(year_str)
     
-    # Extract years using regex
     year_match = re.search(r'(\d{4})', str(year_str))
     if year_match:
         return int(year_match.group(1))
     
-    # If no year found, return current year
     return datetime.now().year
 
 def get_iso_week(date_str):
@@ -794,24 +789,18 @@ def add_studio_features(df):
     return df
 
 def add_interaction_features(df):
-    """
-    Add interaction and multiplier features that capture relationships between features
-    """
-    # Interaction between major studios and franchises
+    
     df['major_studio_x_franchise'] = df['is_major_studio'] * df['franchise_level']
     
-    # Connected universe flag, e.g., Marvel/DC films with multiple levels
     df['is_connected_universe'] = (
         (df['is_superhero_franchise'] == 1) & 
         (df['franchise_level'] >= 2)
     ).astype(int)
     
-    # Estimated marketing potential from studio and franchise weight
     df['estimated_marketing_power'] = (
         df['franchise_level'] * 2 + df['is_major_studio'] * 1.5
     )
     
-    # Success amplifier using vectorized operations
     conditions = [
         (df['is_likely_blockbuster'] == 1),
         (df['is_mcu'] == 1) & df['film_title'].str.contains('avengers', case=False, na=False),

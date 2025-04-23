@@ -20,7 +20,7 @@ class MovieInput(BaseModel):
     broadcast_category: Optional[str] = None
     trailer_views: Optional[str] = None
     synopsis: Optional[str] = None
-    fr_entries: Optional[int] = 0  # This will be optional as it's the target for new movies
+    fr_entries: Optional[int] = 0  
 
 
 class MovieFeatures(BaseModel):

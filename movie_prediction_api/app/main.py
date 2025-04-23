@@ -10,18 +10,15 @@ from app.preprocessing.feature_engineering import preprocess_movie_data
 from app.models.prediction_model import get_model_instance
 import re
 
-# Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-# Create FastAPI app
 app = FastAPI(
     title="Movie Box Office Prediction API",
     description="API for predicting French box office entries for movies",
     version="1.0.0"
 )
 
-# Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  # Allow all origins
@@ -30,7 +27,6 @@ app.add_middleware(
     allow_headers=["*"],  # Allow all headers
 )
 
-# Root endpoint
 @app.get("/")
 async def root():
     return {
@@ -118,9 +114,9 @@ async def predict_csv(file: UploadFile = File(...)):
         # Read CSV with correct parameters
         csv_df = pd.read_csv(
             io.StringIO(csv_content),
-            sep=',',          # Explicitement spécifier le séparateur
-            quotechar='"',    # Gérer les guillemets dans les chaînes
-            encoding='utf-8'  # Spécifier l'encodage
+            sep=',',          
+            quotechar='"',    
+            encoding='utf-8'  
         )
         
         # Debug the DataFrame columns and first row
@@ -174,31 +170,28 @@ if __name__ == "__main__":
     import uvicorn
     uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)
 
+
 def parse_duration(duration_str):
     """Parse duration string like '1h 44min' to minutes"""
     if pd.isna(duration_str) or duration_str is None:
-        return 105  # Default duration
+        return 105  
     
     if isinstance(duration_str, (int, float)):
         return float(duration_str)
     
     total_minutes = 0
     
-    # Extract hours
     hours_match = re.search(r'(\d+)h', str(duration_str))
     if hours_match:
         total_minutes += int(hours_match.group(1)) * 60
     
-    # Extract minutes
     minutes_match = re.search(r'(\d+)min', str(duration_str))
     if minutes_match:
         total_minutes += int(minutes_match.group(1))
     
-    # If no pattern matched but there's a number, assume it's minutes
     if total_minutes == 0:
         number_match = re.search(r'(\d+)', str(duration_str))
         if number_match:
             total_minutes = int(number_match.group(1))
     
-    # If still zero, use default
     return total_minutes if total_minutes > 0 else 105

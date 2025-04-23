@@ -94,6 +94,7 @@ class MoviePredictionModel:
                     return results
             
             return MockModel()
+        
     def parse_stringified_lists(self, df: pd.DataFrame, columns: List[str]) -> pd.DataFrame:
         """Parse stringified lists in the DataFrame"""
         for col in columns:
@@ -165,26 +166,23 @@ class MoviePredictionModel:
             # Extraire seulement les features numériques
             X_numeric = X.select_dtypes(include=[np.number])
             logger.info(f"Numeric features shape: {X_numeric.shape}")
-            
-            # Pour déboguer - afficher les noms de colonnes
             logger.info(f"Numeric feature names: {X_numeric.columns.tolist()}")
             
             try:
-                # Option 1: Essayer directement avec les features numériques
+            
                 predictions = self.model.predict(X_numeric)
                 method = "numeric_features"
             except Exception as e1:
                 logger.warning(f"Direct prediction failed: {str(e1)}")
                 
                 try:
-                    # Option 2: Essayer avec un array numpy
+                    
                     X_array = X_numeric.values
                     predictions = self.model.predict(X_array)
                     method = "numpy_array"
                 except Exception as e2:
                     logger.warning(f"NumPy array prediction failed: {str(e2)}")
                     
-                    # Option 3: Utiliser un modèle de repli basé sur des règles
                     logger.info("Using rule-based fallback model")
                     predictions = self._rule_based_prediction(features)
                     method = "rule_based"
