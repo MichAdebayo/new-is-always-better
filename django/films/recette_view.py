@@ -10,6 +10,11 @@ def recettes_view(request):
     broadcast = get_or_create_broadcast(current_date)
     recettes = get_or_create_recettes(broadcast)
     
+
+    for recette in recettes : 
+        recette.day_name = recette.date.strftime("%A")
+        recette.total = recette.ticket_price * recette.room_1_actual + recette.ticket_price * recette.room_2_actual + recette.consumptions
+    
     context = {
         'recettes': recettes,
         'broadcast': broadcast
