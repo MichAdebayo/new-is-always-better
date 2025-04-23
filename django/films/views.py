@@ -1,3 +1,4 @@
+import io
 import os
 from django.contrib import messages
 from django.core.files.storage import FileSystemStorage
@@ -8,12 +9,15 @@ from django.shortcuts import render, redirect, get_object_or_404
 from .models import Movie, PredictionHistory, INITIAL_DATE_FORMAT_STRING
 
 from .data_importer import DataImporter
+from .utils import process_movies_dataframe
 
 import csv
 import datetime as dt
+import logging
 
 model_version = 0
 
+logger = logging.getLogger(__name__)  # Utilise le logger Django pour detecter les erreurs
 #__________________________________________________________________________________________________
 #
 # region top_ten_list
@@ -239,11 +243,30 @@ def update_data(request):
         don't forget : pip install azure-storage-blob 
     """
     if request.method == 'POST':
-        
-        azure_blob_getter = AzureBlobStorageGetter()
-        dataframe = azure_blob_getter.get_storage_content()
-        messages.success(request, 'Bonne nouvelle')
-        
+        try:
+            azure_blob_getter = AzureBlobStorageGetter()
+            dataframe = azure_blob_getter.get_storage_content()
+
+            if dataframe is None or dataframe.empty:
+                messages.error(request, '❌ Le fichier récupéré est vide ou non lisible.')
+                logger.warning("DataFrame vide ou None après lecture du blob Azure.")
+                return render(request, 'films/settings.html')
+
+            # Traitement et import des données dans Movie
+            logs = process_movies_dataframe(dataframe)
+
+            success_count = sum(1 for log in logs if log.startswith("✅"))
+            error_count = len(logs) - success_count
+
+            for log_entry in logs:
+                logger.info(log_entry)
+
+            messages.success(request, f"{success_count} films importés, {error_count} erreurs.")
+            logger.info(f"✅ Importation terminée : {success_count} succès, {error_count} erreurs.")
+
+        except Exception as e:
+            messages.error(request, f"Erreur critique : {str(e)}")
+            logger.exception("❌ Erreur critique lors de l'importation depuis Azure Blob.")
 
     return render(request, 'films/settings.html')
 
