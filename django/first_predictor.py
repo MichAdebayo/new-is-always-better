@@ -31,16 +31,22 @@ class FirstPredictor() :
         # chargement data 
         import pandas as pd
         
-        #original_csv = pd.read_csv('static/films_jp_box.csv')
-        original_csv = pd.read_csv('static/films_jp_box_V2.csv', sep=';')
+        try:
+            #original_csv = pd.read_csv('static/films_jp_box.csv')
+            original_csv = pd.read_csv('static/films_jp_box_V2.csv', sep=';')
 
-        movie_row = original_csv[original_csv['titre']== movie_title].iloc[[0]]
-        prediction = dummy_model.predict(movie_row)
+            movie_row = original_csv[original_csv['titre']== movie_title].iloc[[0]]
 
-        pred_int = int(prediction[0])
-        error = int(pred_int/5)
+
+            prediction = dummy_model.predict(movie_row)
+
+            pred_int = int(prediction[0])
+            error = int(pred_int/5)
        
-        return  (pred_int, error)
+            return  (pred_int, error)
+        
+        except Exception as ex :
+            return (0,0)
     
     def _predict_version_1(self, movie_title: str) -> tuple[int, int]:
         """
