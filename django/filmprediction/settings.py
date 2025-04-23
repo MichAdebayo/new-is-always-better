@@ -50,7 +50,7 @@ INSTALLED_APPS = [
      # Apps installées
     "tailwind",
     "films",
-    # "theme",
+    "theme",
     'django_browser_reload',
 ]
 
