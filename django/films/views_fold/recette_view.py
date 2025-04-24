@@ -1,9 +1,13 @@
 from django.shortcuts import render, redirect
 from django.views.decorators.http import require_POST
 from datetime import datetime, date, timedelta
-from .models import Recette, Broadcast
-from .days_of_week_utils import get_start_wednesday, get_week_days
+from ..models import Recette, Broadcast
+from ..days_of_week_utils import get_start_wednesday, get_week_days
 
+#______________________________________________________________________________
+# 
+# region recettes_view
+#______________________________________________________________________________
 def recettes_view(request):
 
     current_date = date.today()
@@ -21,6 +25,10 @@ def recettes_view(request):
     }
     return render(request, 'films/recette.html', context)
 
+#______________________________________________________________________________
+# 
+# region update_recettes
+#______________________________________________________________________________
 @require_POST
 def update_recettes(request):
     recettes_data = request.POST.getlist('recettes')

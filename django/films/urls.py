@@ -1,6 +1,6 @@
 from django.urls import path
 from . import views
-from . import recette_view
+from .views_fold import recette_view
 
 from django.conf import settings
 from django.conf.urls.static import static
