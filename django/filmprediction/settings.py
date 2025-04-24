@@ -175,3 +175,5 @@ LOGGING = {
         'level': 'INFO',
     },
 }
+
+FASTAPI_URL = "http://localhost:8000"

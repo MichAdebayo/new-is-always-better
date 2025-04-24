@@ -5,6 +5,7 @@ from django.core.files.storage import FileSystemStorage
 from django.db.models import Q
 from django.http import HttpResponse
 from django.shortcuts import render, redirect, get_object_or_404
+import requests
 
 from .models import Movie, PredictionHistory, INITIAL_DATE_FORMAT_STRING
 
@@ -240,7 +241,7 @@ def import_csv(request):
 from azure_blob_getter import AzureBlobStorageGetter
 def update_data(request):
     """
-        don't forget : pip install azure-storage-blob 
+    Mise à jour des films depuis Azure Blob et prédiction via API pour les films importés uniquement.
     """
     if request.method == 'POST':
         try:
@@ -252,7 +253,7 @@ def update_data(request):
                 logger.warning("DataFrame vide ou None après lecture du blob Azure.")
                 return render(request, 'films/settings.html')
 
-            # Traitement et import des données dans Movie
+            # Importation dans la base et récupération des films importés
             logs = process_movies_dataframe(dataframe)
 
             success_count = sum(1 for log in logs if log.startswith("✅"))
@@ -261,13 +262,59 @@ def update_data(request):
             for log_entry in logs:
                 logger.info(log_entry)
 
-            messages.success(request, f"{success_count} films importés, {error_count} erreurs.")
-            logger.info(f"✅ Importation terminée : {success_count} succès, {error_count} erreurs.")
+            # On récupère les films importés, supposant qu'ils sont dans le DataFrame
+            imported_movies = Movie.objects.filter(title__in=[log.split("✅")[1].strip() for log in logs if log.startswith("✅")])
+
+            # Lancement des prédictions pour les films importés uniquement
+            for movie in imported_movies:
+                try:
+                    # Création du payload avec les données du film
+                    payload = {
+                        "film_title": movie.title,
+                        "release_date": movie.release_date.isoformat() if movie.release_date else "",
+                        "duration": movie.duration,
+                        "age_classification": movie.age_classification,
+                        "producers": movie.producers,
+                        "director": movie.director,
+                        "top_stars": movie.top_stars,
+                        "languages": movie.languages,
+                        "distributor": movie.distributor,
+                        "year_of_production": movie.year_of_production,
+                        "film_nationality": movie.film_nationality,
+                        "filming_secrets": movie.filming_secrets,
+                        "awards": movie.awards,
+                        "associated_genres": movie.associated_genres,
+                        "broadcast_category": movie.broadcast_category,
+                        "trailer_views": movie.trailer_views,
+                        "synopsis": movie.synopsis
+                    }
+
+                    # Envoi de la requête POST vers l'API de prédiction
+                    response = requests.post(
+                        f"{settings.FASTAPI_URL}/predict", 
+                        json=payload,  # Envoi du payload au format JSON
+                        timeout=10
+                    )
+                    response.raise_for_status()  # Soulever une exception si la réponse est une erreur HTTP
+                    prediction_data = response.json()
+
+                    # Sauvegarde de la prédiction dans la base de données
+                    PredictionHistory.objects.create(
+                        movie=movie,
+                        first_week_predicted_entries_france=prediction_data.get("prediction", 0),
+                        prediction_error=prediction_data.get("error", 0),
+                        model_version=prediction_data.get("version", 1),
+                        date=now().date()
+                    )
+                    logger.info(f"✅ Prédiction enregistrée pour {movie.title}")
+
+                except Exception as prediction_error:
+                    logger.warning(f"❌ Échec de la prédiction pour {movie.title}: {prediction_error}")
+
+            messages.success(request, f"{success_count} films importés, {error_count} erreurs. Prédictions générées pour les films importés.")
 
         except Exception as e:
-            messages.error(request, f"Erreur critique : {str(e)}")
-            logger.exception("❌ Erreur critique lors de l'importation depuis Azure Blob.")
+            messages.error(request, f"Erreur globale : {str(e)}")
+            logger.exception("❌ Erreur critique lors de l'importation ou de la prédiction.")
 
     return render(request, 'films/settings.html')
-
-   
