@@ -176,4 +176,4 @@ LOGGING = {
     },
 }
 
-FASTAPI_URL = "http://0.0.0.0:8000"
+FASTAPI_URL = "http://localhost:8000"
