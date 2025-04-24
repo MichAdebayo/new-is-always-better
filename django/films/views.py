@@ -211,6 +211,7 @@ def update_data(request):
 
             # Lancement des prédictions pour les films importés uniquement
             for movie_data in created_movies:
+                logger.info(f"✅ Prédiction enregistrée pour prediction fastapi: {movie_data["title"]}")
                 try:
                     # Création du payload avec les données du film
                     payload = {
@@ -233,6 +234,10 @@ def update_data(request):
                         "synopsis": movie_data["synopsis"]
                     }
                     logger.info(f"✅ Prédiction enregistrée pour prediction fastapi")
+
+                     # ✅ Affichage du payload
+                    logger.info(f"📦 Payload envoyé : {payload}")
+
                     # Envoi de la requête POST vers l'API de prédiction
                     response = requests.post(
                         "http://localhost:8000/predict", 
@@ -240,18 +245,29 @@ def update_data(request):
                         timeout=10
                     )
                     response.raise_for_status()  # Soulever une exception si la réponse est une erreur HTTP
+                    logger.info(f"📊 Résultat de la prédiction : {response.status_code }")
+                    if response.status_code == 200:
+                        prediction_data = response.json()
+                        logger.info(f"📊 Résultat de la prédiction : {prediction_data}")
+
                     prediction_data = response.json()
-                    print(prediction_data)
+                    #print(prediction_data)
                     logger.info(f"✅ Prédiction enregistrée pour prediction fastapi")
                     # Sauvegarde de la prédiction dans la base de données
-                    # PredictionHistory.objects.create(
-                    #     movie=movie_data["title"],
-                    #     first_week_predicted_entries_france=prediction_data.get("prediction", 0),
-                    #     prediction_error=prediction_data.get("error", 0),
-                    #     model_version=prediction_data.get("version", 1),
-                    #     date=dt.datetime.now().date()
-                    # )
-                    logger.info(f"✅ Prédiction enregistrée pour {movie_data["title"]}")
+                    try:
+                        movie_title = prediction_data.get("film_title")
+                        movie_obj = Movie.objects.get(title=movie_title)
+                        movie_id = movie_obj.id
+                        
+                        PredictionHistory.objects.create(
+                        first_week_predicted_entries_france=prediction_data.get("predicted_fr_entries", 0),
+                        model_version=prediction_data.get("version", 0),
+                        date=dt.datetime.now().date(),
+                        movie_id =movie_id
+                        )
+                        logger.info(f"✅ Prédiction enregistrée pour {movie_data["title"]}")
+                    except Movie.DoesNotExist:
+                        print(f"Aucun film trouvé avec le titre : {movie_title}")
 
                 except Exception as prediction_error:
                     logger.warning(f"❌ Échec de la prédiction pour {movie_data["title"]}: {prediction_error}")
