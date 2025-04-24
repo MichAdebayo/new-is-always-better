@@ -51,6 +51,10 @@ def finance(request):
         'active_tab': 'finance'
     })
 
+#__________________________________________________________________________________________________
+#
+# region compute data
+#__________________________________________________________________________________________________
 def compute_finance_data(target_date : dt.date) -> dict :
 
     broadcast = get_or_create_broadcast(target_date)
