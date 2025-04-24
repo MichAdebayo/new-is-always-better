@@ -257,7 +257,7 @@ def update_data(request):
                 return render(request, 'films/settings.html')
 
             # Importation dans la base et récupération des films importés
-            logs = process_movies_dataframe(dataframe)
+            logs, created_movies = process_movies_dataframe(dataframe)
 
             success_count = sum(1 for log in logs if log.startswith("✅"))
             error_count = len(logs) - success_count
@@ -266,10 +266,10 @@ def update_data(request):
                 logger.info(log_entry)
 
             # On récupère les films importés, supposant qu'ils sont dans le DataFrame
-            imported_movies = Movie.objects.filter(title__in=[log.split("✅")[1].strip() for log in logs if log.startswith("✅")])
+            #imported_movies = Movie.objects.filter(title__in=[log.split("✅")[1].strip() for log in logs if log.startswith("✅")])
 
             # Lancement des prédictions pour les films importés uniquement
-            for movie in imported_movies:
+            for movie in created_movies:
                 try:
                     # Création du payload avec les données du film
                     payload = {
