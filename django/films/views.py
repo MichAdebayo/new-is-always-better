@@ -237,7 +237,10 @@ def import_csv(request):
 
     return render(request, 'films/settings.html')
 
-
+#__________________________________________________________________________________________________
+#
+# region setings / update_data
+#__________________________________________________________________________________________________
 from azure_blob_getter import AzureBlobStorageGetter
 def update_data(request):
     """
@@ -304,7 +307,7 @@ def update_data(request):
                         first_week_predicted_entries_france=prediction_data.get("prediction", 0),
                         prediction_error=prediction_data.get("error", 0),
                         model_version=prediction_data.get("version", 1),
-                        date=now().date()
+                        date=dt.datetime.now().date()
                     )
                     logger.info(f"✅ Prédiction enregistrée pour {movie.title}")
 
