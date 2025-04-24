@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect
 from django.views.decorators.http import require_POST
 from datetime import datetime, date, timedelta
 from ..models import Recette, Broadcast
-from ..days_of_week_utils import get_start_wednesday, get_week_days
+from ..broadcast_utils import get_or_create_broadcast, get_or_create_recettes
 
 #______________________________________________________________________________
 # 
@@ -21,7 +21,8 @@ def recettes_view(request):
     
     context = {
         'recettes': recettes,
-        'broadcast': broadcast
+        'broadcast': broadcast,
+        'active_tab': 'recettes'
     }
     return render(request, 'films/recette.html', context)
 
@@ -60,42 +61,7 @@ def update_recettes(request):
 
     return redirect('recettes') 
 
-def get_or_create_broadcast(current_date : date) -> Broadcast:
-    broadcast = Broadcast.objects.filter(
-        start_date__lte=current_date, 
-        end_date__gte=current_date
-    ).first()
 
-    if broadcast :
-        return broadcast
-
-    start_wednesday = get_start_wednesday(current_date)
-    week_days = get_week_days(start_wednesday)
-    broadcast = Broadcast(
-        start_date = week_days[0],
-        end_date = week_days[6]
-    )
-    broadcast.save()
-    return broadcast
-
-def get_or_create_recettes(broadcast : Broadcast ) -> list[Recette]:
-    results = Recette.objects.filter(broadcast_id=broadcast.id)
-    if results.count() ==7 :
-        return list(results)
-
-    ticket_price = 10.0
-    week_days = get_week_days(broadcast.start_date)
-
-    recette_list = []
-    for day_date in week_days :
-        recette = Recette(
-            broadcast_id = broadcast.id,
-            date = day_date, 
-            ticket_price=ticket_price)  
-        recette.save()   
-        recette_list.append(recette) 
-
-    return recette_list
 
 
 

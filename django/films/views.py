@@ -81,63 +81,11 @@ def top_ten_list(request):
 
     top_movies = sorted(next_week_movies, key=lambda x: x.last_prediction, reverse=True)
 
-    return render(request, 'films/top_ten_list.html', {'movies': top_movies[:10]})
+    return render(request, 'films/top_ten_list.html', {
+        'movies': top_movies[:10],  
+        'active_tab': 'top-ten'
+    })
 
-#__________________________________________________________________________________________________
-#
-# region dashboard
-#__________________________________________________________________________________________________
-def dashboard(request):
-    
-    today = dt.datetime.now()
-    limit_date =  today - dt.timedelta(days=30)
-
-    recent_movies = Movie.objects.filter(  
-            release_date_fr__gt = limit_date
-        ).order_by(
-            '-release_date_fr'
-        ).prefetch_related('predictions').all()
-
-    for movie in recent_movies :
-        predictions = movie.predictions.all()
-        if len(predictions) >0 :
-            movie.last_prediction = predictions.last().first_week_predicted_entries_france
-
-    selected_movies = recent_movies[:2]
-    upcoming_movies = recent_movies[2:] 
-    
-    context = {
-        'selected_movies': selected_movies, 
-        'upcoming_movies': upcoming_movies
-    }
-
-    return render(request, 'films/dashboard.html', context)
-
-#__________________________________________________________________________________________________
-#
-# region run_movie_prediction
-#__________________________________________________________________________________________________
-def run_movie_prediction(request, movie_id) :
-    movie = get_object_or_404(Movie, id=movie_id)
-
-    from first_predictor import FirstPredictor
-    predictor = FirstPredictor(model_version)
-    (prediction, error) = predictor.predict(movie.title, "")
-    
-    import datetime as dt
-    today = dt.datetime.now().date()
-
-    new_entry = PredictionHistory(
-        movie_id = movie.id, 
-        first_week_predicted_entries_france = prediction, 
-        prediction_error = error,
-        model_version = predictor.model_version,
-        date = today
-    )
-    new_entry.save()
-
-    messages.success(request, f"Action launched for the movie: {movie.title}")
-    return redirect('dashboard')  
 
 #__________________________________________________________________________________________________
 #
@@ -150,34 +98,15 @@ def history(request):
         'active_tab': 'history'
     })
 
-#__________________________________________________________________________________________________
-#
-# region financials
-#__________________________________________________________________________________________________
-def financials(request):
-    weekly_revenue = 9000
-    weekly_costs = 4900
-    weekly_profit = weekly_revenue - weekly_costs
-    occupancy_rate = 85
-    
-    metrics = {
-        'weekly_revenue': weekly_revenue,
-        'weekly_profit': weekly_profit,
-        'occupancy_rate': occupancy_rate,
-        'weekly_costs': weekly_costs
-    }
-    
-    return render(request, 'films/financials.html', {
-        'metrics': metrics,
-        'active_tab': 'financials'
-    })
 
 #__________________________________________________________________________________________________
 #
 # region settings / import_csv
 #__________________________________________________________________________________________________
 def settings(request):
-    return render(request, 'films/settings.html')
+    return render(request, 'films/settings.html', {
+        'active_tab': 'settings'
+    })
 
 def import_csv(request):
     if request.method == 'POST' and request.FILES.get('csv_file'):
@@ -186,7 +115,9 @@ def import_csv(request):
             csv_file = request.FILES['csv_file']
             if not csv_file.name.endswith('.csv'):
                 messages.error(request, "Invalid file type. Please upload a CSV file.")
-                return render(request, 'films/settings.html')
+                return render(request, 'films/settings.html',  {
+                    'active_tab': 'settings'
+                })
 
             # Stocker temporairement le fichier CSV
             fs = FileSystemStorage()
@@ -197,7 +128,9 @@ def import_csv(request):
             # Vérification si le fichier existe
             if not os.path.exists(file_path):
                 messages.error(request, "File not found.")
-                return render(request, 'films/settings.html')
+                return render(request, 'films/settings.html',  {
+                    'active_tab': 'settings'
+                })
 
             # Lire le fichier CSV et remplir la base de données
             with open(file_path, newline='', encoding='utf-8') as file:
@@ -218,11 +151,15 @@ def import_csv(request):
 
             # Afficher un message de succès
             messages.success(request, f"{movie_count} movies successfully imported.")
-            return render(request, 'films/settings.html')
+            return render(request, 'films/settings.html',  {
+                'active_tab': 'settings'
+            })
 
         except Exception as e:
             messages.error(request, f"Error: {str(e)}")
-            return render(request, 'films/settings.html')
+            return render(request, 'films/settings.html',  {
+                'active_tab': 'settings'
+            })
 
         finally:
             # Supprimer le fichier temporaire s'il existe
@@ -230,7 +167,9 @@ def import_csv(request):
                 os.remove(file_path)
                 print(f"Temporary file deleted: {file_path}")
 
-    return render(request, 'films/settings.html')
+    return render(request, 'films/settings.html',  {
+        'active_tab': 'settings'
+    })
 
 
 from azure_blob_getter import AzureBlobStorageGetter
@@ -245,6 +184,8 @@ def update_data(request):
         messages.success(request, 'Bonne nouvelle')
         
 
-    return render(request, 'films/settings.html')
+    return render(request, 'films/settings.html',  {
+        'active_tab': 'settings'
+    })
 
    
