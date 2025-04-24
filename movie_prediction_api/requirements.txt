@@ -7,3 +7,4 @@ catboost==1.2.0
 pydantic==2.4.2
 python-multipart==0.0.6
 textblob==0.15.3
+uvicorn==0.23.2

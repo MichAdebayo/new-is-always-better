@@ -1,0 +1,70 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div x-data="{}" class="bg-white rounded-lg shadow-md">
+    <div class="p-6">
+        <h2 class="text-xl font-semibold text-gray-800 mb-4">
+            Recette du {{ broadcast.start_date }} au {{ broadcast.end_date }}
+        </h2>
+
+        <form method="post" action="{% url 'update_recettes' %}">
+            {% csrf_token %}
+            <div class="hidden md:block overflow-x-auto">
+                <table class="w-full table-auto">
+                    <thead>
+                        <tr class="border-b text-left">
+                            <th class="py-3 px-4 align-bottom" rowspan="2">Jour</th>
+                            <th class="py-3 px-4 text-center" colspan="3">Salle 1</th>
+                            <th class="py-3 px-4 text-center" colspan="3">Salle 2</th>
+                            <th class="py-3 px-4 text-center" rowspan="2">Consommations</th>
+                            <th class="py-3 px-4 text-center" rowspan="2">Total</th>
+                        </tr>
+                        <tr class="border-b text-left">
+                            <th class="py-2 px-4 text-center">Prévision</th>
+                            <th class="py-2 px-4 text-center">Entrées</th>
+                            <th class="py-2 px-4 text-center">Recette</th>
+                            <th class="py-2 px-4 text-center">Prévision</th>
+                            <th class="py-2 px-4 text-center">Entrées</th>
+                            <th class="py-2 px-4 text-center">Recette</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for recette in recettes %}
+                        <tr class="border-b">
+                            <td class="py-3 px-4">{{ recette.day_name }}</td>
+                            <input type="hidden" name="recettes[{{ forloop.counter0 }}][day]" value="{{ recette.day_name }}">
+
+                            <!-- Salle 1 -->
+                            <td class="py-3 px-4 text-right">{{ recette.room_1_predicted }}</td>
+                            <td class="py-3 px-4 text-right">
+                                <input type="number" name="recettes[{{ forloop.counter0 }}][room_1_actual]" value="{{ recette.room_1_actual }}" class="w-8 text-right border rounded-sm px-1 py-0.5">
+                            </td>
+                            <td class="py-3 px-4 text-right">{{ recette.room_1_amount }} €</td>
+
+                            <!-- Salle 2 -->
+                            <td class="py-3 px-4 text-right">{{ recette.room_2_predicted }}</td>
+                            <td class="py-3 px-4 text-right">
+                                <input type="number" name="recettes[{{ forloop.counter0 }}][room_2_actual]" value="{{ recette.room_2_actual }}" class="w-8 text-right border rounded-sm px-1 py-0.5">
+                            </td>
+                            <td class="py-3 px-4 text-right">{{ recette.room_2_amount }} €</td>
+
+                            <td class="py-3 px-4 text-right">
+                                <input type="number" step="0.01" name="recettes[{{ forloop.counter0 }}][consumptions]" value="{{ recette.consumptions }}" class="w-8 text-right border rounded-sm px-1 py-0.5"> €
+                            </td>
+                            <td class="py-3 px-4 text-right">{{ recette.total }} €</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Bouton -->
+            <div class="mt-6 text-right">
+                <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg shadow">
+                    Mettre à jour
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
