@@ -29,7 +29,7 @@ def safe_int(value):
 
 def process_movies_dataframe(df: pd.DataFrame) -> list:
     logs = []
-    created_movies = []
+    created_movies_data = []
     for _, row in df.iterrows():
         try:
             title = safe_str(row.get('film_title'))
@@ -66,28 +66,29 @@ def process_movies_dataframe(df: pd.DataFrame) -> list:
                     release_date_fr=release_date_fr,
                     first_week_actual_entries_france=fr_entries
                 )
-                tmp_movie = Movie.objects.create(
-                    title=safe_str(row.get('film_title')),
-                    release_date=safe_str(row.get('release_date')),
-                    duration=safe_str(row.get('duration')),
-                    age_classification=safe_str(row.get('age_classification')),
-                    producers=safe_str(row.get('producers')),
-                    director=safe_str(row.get('director')),
-                    top_stars=safe_str(row.get('top_stars')),
-                    languages=safe_str(row.get('languages')),
-                    distributor=safe_str(row.get('distributor')),
-                    year_of_production=safe_str(row.get('year_of_production')),
-                    film_nationality=safe_str(row.get('film_nationality')),
-                    filming_secrets=safe_str(row.get('filming_secrets')),
-                    awards=safe_str(row.get('awards')),
-                    associated_genres=safe_str(row.get('associated_genres')),
-                    broadcast_category=safe_str(row.get('broadcast_category')),
-                    trailer_views=safe_str(row.get('trailer_views')),
-                    synopsis=safe_str(row.get('synopsis'))
-                )
-                created_movies.append(tmp_movie)
+                # Création du dictionnaire à envoyer à FastAPI
+                movie_data = {
+                    "title": title,
+                    "release_date": safe_str(row.get("release_date")),
+                    "duration": safe_str(row.get("duration")),
+                    "age_classification": safe_str(row.get("age_classification")),
+                    "producers": safe_str(row.get("producers")),
+                    "director": safe_str(row.get("director")),
+                    "top_stars": safe_str(row.get("top_stars")),
+                    "languages": safe_str(row.get("languages")),
+                    "distributor": safe_str(row.get("distributor")),
+                    "year_of_production": safe_str(row.get("year_of_production")),
+                    "film_nationality": safe_str(row.get("film_nationality")),
+                    "filming_secrets": safe_str(row.get("filming_secrets")),
+                    "awards": safe_str(row.get("awards")),
+                    "associated_genres": safe_str(row.get("associated_genres")),
+                    "broadcast_category": safe_str(row.get("broadcast_category")),
+                    "trailer_views": safe_str(row.get("trailer_views")),
+                    "synopsis": safe_str(row.get("synopsis"))
+                }
+                created_movies_data.append(movie_data)
                 logs.append(f"✅ Created: {title} ({release_date_fr})")
         except Exception as e:
             logs.append(f"❌ Error for {row.get('film_title')} : {str(e)}")
 
-    return logs, created_movies
+    return logs, created_movies_data
