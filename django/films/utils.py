@@ -66,8 +66,8 @@ def process_movies_dataframe(df: pd.DataFrame) -> list:
                     release_date_fr=release_date_fr,
                     first_week_actual_entries_france=fr_entries
                 )
-                # Création du dictionnaire à envoyer à FastAPI
-                movie_data = {
+            # Création du dictionnaire à envoyer à FastAPI
+            movie_data = {
                     "title": title,
                     "release_date": safe_str(row.get("release_date")),
                     "duration": safe_str(row.get("duration")),
@@ -85,9 +85,9 @@ def process_movies_dataframe(df: pd.DataFrame) -> list:
                     "broadcast_category": safe_str(row.get("broadcast_category")),
                     "trailer_views": safe_str(row.get("trailer_views")),
                     "synopsis": safe_str(row.get("synopsis"))
-                }
-                created_movies_data.append(movie_data)
-                logs.append(f"✅ Created: {title} ({release_date_fr})")
+            }
+            created_movies_data.append(movie_data)
+            logs.append(f"✅ Created: {title} ({release_date_fr})")
         except Exception as e:
             logs.append(f"❌ Error for {row.get('film_title')} : {str(e)}")
 

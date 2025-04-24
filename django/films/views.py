@@ -269,50 +269,51 @@ def update_data(request):
             #imported_movies = Movie.objects.filter(title__in=[log.split("✅")[1].strip() for log in logs if log.startswith("✅")])
 
             # Lancement des prédictions pour les films importés uniquement
-            for movie in created_movies:
+            for movie_data in created_movies:
                 try:
                     # Création du payload avec les données du film
                     payload = {
-                        "film_title": movie.title,
-                        "release_date": movie.release_date.isoformat() if movie.release_date else "",
-                        "duration": movie.duration,
-                        "age_classification": movie.age_classification,
-                        "producers": movie.producers,
-                        "director": movie.director,
-                        "top_stars": movie.top_stars,
-                        "languages": movie.languages,
-                        "distributor": movie.distributor,
-                        "year_of_production": movie.year_of_production,
-                        "film_nationality": movie.film_nationality,
-                        "filming_secrets": movie.filming_secrets,
-                        "awards": movie.awards,
-                        "associated_genres": movie.associated_genres,
-                        "broadcast_category": movie.broadcast_category,
-                        "trailer_views": movie.trailer_views,
-                        "synopsis": movie.synopsis
+                        "film_title": movie_data["title"],
+                        "release_date": movie_data["release_date"],
+                        "duration": movie_data["duration"],
+                        "age_classification": movie_data["age_classification"],
+                        "producers": movie_data["producers"],
+                        "director": movie_data["director"],
+                        "top_stars": movie_data["top_stars"],
+                        "languages": movie_data["languages"],
+                        "distributor": movie_data["distributor"],
+                        "year_of_production": movie_data["year_of_production"],
+                        "film_nationality": movie_data["film_nationality"],
+                        "filming_secrets": movie_data["filming_secrets"],
+                        "awards": movie_data["awards"],
+                        "associated_genres": movie_data["associated_genres"],
+                        "broadcast_category": movie_data["broadcast_category"],
+                        "trailer_views": movie_data["trailer_views"],
+                        "synopsis": movie_data["synopsis"]
                     }
-
+                    logger.info(f"✅ Prédiction enregistrée pour prediction fastapi")
                     # Envoi de la requête POST vers l'API de prédiction
                     response = requests.post(
-                        f"{settings.FASTAPI_URL}/predict", 
+                        "http://localhost:8000/predict", 
                         json=payload,  # Envoi du payload au format JSON
                         timeout=10
                     )
                     response.raise_for_status()  # Soulever une exception si la réponse est une erreur HTTP
                     prediction_data = response.json()
-
+                    print(prediction_data)
+                    logger.info(f"✅ Prédiction enregistrée pour prediction fastapi")
                     # Sauvegarde de la prédiction dans la base de données
-                    PredictionHistory.objects.create(
-                        movie=movie,
-                        first_week_predicted_entries_france=prediction_data.get("prediction", 0),
-                        prediction_error=prediction_data.get("error", 0),
-                        model_version=prediction_data.get("version", 1),
-                        date=dt.datetime.now().date()
-                    )
-                    logger.info(f"✅ Prédiction enregistrée pour {movie.title}")
+                    # PredictionHistory.objects.create(
+                    #     movie=movie_data["title"],
+                    #     first_week_predicted_entries_france=prediction_data.get("prediction", 0),
+                    #     prediction_error=prediction_data.get("error", 0),
+                    #     model_version=prediction_data.get("version", 1),
+                    #     date=dt.datetime.now().date()
+                    # )
+                    logger.info(f"✅ Prédiction enregistrée pour {movie_data["title"]}")
 
                 except Exception as prediction_error:
-                    logger.warning(f"❌ Échec de la prédiction pour {movie.title}: {prediction_error}")
+                    logger.warning(f"❌ Échec de la prédiction pour {movie_data["title"]}: {prediction_error}")
 
             messages.success(request, f"{success_count} films importés, {error_count} erreurs. Prédictions générées pour les films importés.")
 
