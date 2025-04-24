@@ -18,7 +18,7 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
                     </svg>
-                    12.6%
+                    {{ metrics.revenue_diff |floatformat:0}}%
                 </span>
             </div>
             <h3 class="mt-4 text-2xl font-semibold text-gray-800">€{{ metrics.weekly_revenue }}</h3>
@@ -39,14 +39,14 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
                     </svg>
-                    8.2%
+                    {{ metrics.profit_diff|floatformat:0 }}%
                 </span>
             </div>
             <h3 class="mt-4 text-2xl font-semibold text-gray-800">€{{ metrics.weekly_profit }}</h3>
             <p class="text-sm text-gray-500">Weekly Profit</p>
         </div>
 
-        <!-- Occupancy Rate -->
+        <!-- Occupation Rate -->
         <div class="bg-white rounded-lg shadow-md p-6">
             <div class="flex items-center justify-between">
                 <div class="p-2 bg-blue-100 rounded-lg">
@@ -60,11 +60,11 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
                     </svg>
-                    5.3%
+                    {{ metrics.occupation_diff|floatformat:0 }}%
                 </span>
             </div>
-            <h3 class="mt-4 text-2xl font-semibold text-gray-800">{{ metrics.occupancy_rate }}%</h3>
-            <p class="text-sm text-gray-500">Occupancy Rate</p>
+            <h3 class="mt-4 text-2xl font-semibold text-gray-800">{{ metrics.occupation_rate|floatformat:0 }}%</h3>
+            <p class="text-sm text-gray-500">Occupation Rate</p>
         </div>
     </div>
 

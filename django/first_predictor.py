@@ -15,7 +15,7 @@ class FirstPredictor() :
                 return self._predict_version_0(movie_title)
             
             case 1 : 
-                return self._predict_version_1(movie_title)
+                return self._predict_version_1(movie_title, movie_release_date)
             
         
     def _predict_version_0(self, movie_title: str) -> tuple[int, int]:
@@ -48,7 +48,7 @@ class FirstPredictor() :
         except Exception as ex :
             return (0,0)
     
-    def _predict_version_1(self, movie_title: str) -> tuple[int, int]:
+    def _predict_version_1(self, movie_title: str, movie_release_date:str) -> tuple[int, int]:
         """
         csv origin = massive_jpbox_clean.csv
         """
