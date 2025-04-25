@@ -9,6 +9,7 @@ urlpatterns = [
     path('', dashboard_view.dashboard, name='dashboard'),
     path('movie/<int:movie_id>/run-prediction/', dashboard_view.run_movie_prediction, name='run_movie_prediction'),
     path('top-ten/', views.top_ten_list, name='top_ten_list'),
+    path('update_top_ten/', views.update_top_ten_list, name='update_top_ten_list'),
     #path('history/', views.history, name='history'),
     path('recettes/', recette_view.recettes_view, name='recettes'),
     path('recettes/update/', recette_view.update_recettes, name='update_recettes'),

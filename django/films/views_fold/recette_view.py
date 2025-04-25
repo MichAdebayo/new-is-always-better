@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect
 from django.views.decorators.http import require_POST
 from datetime import datetime, date, timedelta
 from ..models import Recette, Broadcast
-from ..broadcast_utils import get_or_create_broadcast, get_or_create_recettes
+from ..business.broadcast_utils import get_or_create_broadcast, get_or_create_recettes
 
 #______________________________________________________________________________
 # 

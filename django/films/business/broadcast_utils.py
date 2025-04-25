@@ -1,5 +1,5 @@
 from datetime import date, timedelta
-from .models import Broadcast, Recette
+from ..models import Broadcast, Recette
 
 def get_or_create_broadcast(current_date : date) -> Broadcast:
     broadcast = Broadcast.objects.filter(
@@ -39,17 +39,19 @@ def get_or_create_recettes(broadcast : Broadcast ) -> list[Recette]:
     return recette_list
 
 def get_start_wednesday(current_date : date) -> date:
+    """
+    returns today or the previous wednesday
+    """
     start_wednesday = current_date
-
     day_of_week = current_date.weekday() # 0 = Lundi, 6 = Dimanche
     match day_of_week :
-        case 0 : start_wednesday = current_date + timedelta(days=2)
-        case 1 : start_wednesday = current_date + timedelta(days=1)
+        case 0 : start_wednesday = current_date + timedelta(days=5)
+        case 1 : start_wednesday = current_date + timedelta(days=6)
         case 2 : start_wednesday = current_date 
-        case 3 : start_wednesday = current_date + timedelta(days=6)
-        case 4 : start_wednesday = current_date + timedelta(days=5)
-        case 5 : start_wednesday = current_date + timedelta(days=4)
-        case 6 : start_wednesday = current_date + timedelta(days=3)
+        case 3 : start_wednesday = current_date - timedelta(days=1)
+        case 4 : start_wednesday = current_date - timedelta(days=2)
+        case 5 : start_wednesday = current_date - timedelta(days=3)
+        case 6 : start_wednesday = current_date + timedelta(days=4)
 
     return start_wednesday
 

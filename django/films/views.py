@@ -5,9 +5,15 @@ from django.core.files.storage import FileSystemStorage
 from django.db.models import Q
 from django.http import HttpResponse
 from django.shortcuts import render, redirect, get_object_or_404
+from django.views.decorators.http import require_POST
+
+from typing import Optional
+
 import requests
 
 from .models import Movie, PredictionHistory, INITIAL_DATE_FORMAT_STRING
+from .business.broadcast_utils import get_start_wednesday, get_or_create_broadcast
+from .business.movie_list_utils import get_week_movies
 
 from .data_importer import DataImporter
 from .utils import process_movies_dataframe
@@ -26,46 +32,27 @@ logger = logging.getLogger(__name__)  # Utilise le logger Django pour detecter l
 def top_ten_list(request):
 
     today = dt.datetime.now()
-    start_wednesday = today
 
-    day_of_week = today.weekday() # 0 = Lundi, 6 = Dimanche
-    match day_of_week :
-        case 0 : start_wednesday = today + dt.timedelta(days=2)
-        case 1 : start_wednesday = today + dt.timedelta(days=1)
-        case 2 : start_wednesday = today 
-        case 3 : start_wednesday = today + dt.timedelta(days=6)
-        case 4 : start_wednesday = today + dt.timedelta(days=5)
-        case 5 : start_wednesday = today + dt.timedelta(days=4)
-        case 6 : start_wednesday = today + dt.timedelta(days=3)
-
+    start_wednesday = get_start_wednesday(today)
     end_wednesday = start_wednesday + dt.timedelta(days=7)
 
-    # debug only : { 
-    start_wednesday = start_wednesday - dt.timedelta(days=14)
-    # } debug only 
-    
-    limit_date = today - dt.timedelta(days=21)
-    top_movies = Movie.objects.filter(  
-            release_date_fr__gt = limit_date
-        ).order_by(
-            '-release_date_fr'
-        ).prefetch_related('predictions').all()
-
-    next_week_movies = []
-    for movie in top_movies :
-        release_datetime = dt.datetime.combine(movie.release_date_fr, today.time())
-        if release_datetime < start_wednesday :
-            continue
-    
-        if release_datetime >= end_wednesday :
-            continue
-
-        next_week_movies.append(movie)
+    next_week_movies = get_week_movies(start_wednesday, end_wednesday)
+    broadcast = get_or_create_broadcast(end_wednesday)   
 
     from first_predictor import FirstPredictor
     predictor = FirstPredictor(model_version)
 
     for movie in next_week_movies :
+        if broadcast.room_1 == movie.id :
+            movie.room1_checked = True
+        else : 
+            movie.room1_checked = False
+
+        if broadcast.room_2 == movie.id :
+            movie.room2_checked = True
+        else : 
+            movie.room2_checked = False
+
         predictions = movie.predictions.all()
         if len(predictions) == 0 :
             (prediction, error) = predictor.predict(movie.title, "")
@@ -90,6 +77,55 @@ def top_ten_list(request):
         'movies': top_movies[:10],  
         'active_tab': 'top-ten'
     })
+
+#__________________________________________________________________________________________________
+#
+# region update_top_ten_list
+#__________________________________________________________________________________________________
+@require_POST
+def update_top_ten_list(request):
+    room_1_checks = []
+    room_2_checks = []
+    for key, value in request.POST.items():
+        if key.startswith('room1_'):
+            movie_room_id = key.split('_')[1]
+            if value : 
+                try :
+                    checked_id = int(movie_room_id)
+                    room_1_checks.append(checked_id)
+                except: 
+                    pass
+            
+        elif key.startswith('room2_'):
+            movie_room_id = key.split('_')[1]
+            if value : 
+                try :
+                    checked_id = int(movie_room_id)
+                    room_2_checks.append(checked_id)
+                except: 
+                    pass
+    
+    next_week = dt.datetime.now() + dt.timedelta(days=7)
+    broadcast = get_or_create_broadcast(next_week)
+
+    broadcast.room_1 = assign_room(room_1_checks, broadcast.room_1)
+    broadcast.room_2 = assign_room(room_2_checks, broadcast.room_2)
+    broadcast.save()
+
+    return redirect('top_ten_list')  
+
+def assign_room(room_checks : list[int], room_id : Optional[int]) -> Optional[int]: 
+    num_checked = len(room_checks)
+    if num_checked == 1 :
+        return room_checks[0] # the only one
+    elif num_checked > 1 :
+        if room_id : 
+            other_id = next((x for x in room_checks if x != room_id), None) 
+            return other_id # the new one
+        else : 
+            return room_checks[0] # the first one is ok 
+    else :
+        return None
 
 
 #__________________________________________________________________________________________________
