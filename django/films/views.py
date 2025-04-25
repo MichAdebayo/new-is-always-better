@@ -6,6 +6,7 @@ from django.db.models import Q
 from django.http import HttpResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views.decorators.http import require_POST
+from django.conf import settings
 
 from typing import Optional
 
@@ -53,23 +54,16 @@ def top_ten_list(request):
         else : 
             movie.room2_checked = False
 
-        predictions = movie.predictions.all()
-        if len(predictions) == 0 :
-            (prediction, error) = predictor.predict(movie.title, "")
+        prediction_history = PredictionHistory.objects.filter(movie_id=movie.id).first()
+        if not prediction_history :
+            (prediction, error) = predictor.predict(movie.title, movie.release_date_fr)
             if (prediction, error) != (0,0) :
-                new_entry = PredictionHistory(
-                    movie_id = movie.id, 
-                    first_week_predicted_entries_france = prediction, 
-                    prediction_error = error,
-                    model_version = predictor.model_version,
-                    date = today
-                )
-                new_entry.save()
+                prediction_history = create_or_update_prediction(movie.id, prediction, error, predictor.model_version, date = today)
                 movie.last_prediction = prediction
             else : 
                 movie.last_prediction = 0
         else :
-            movie.last_prediction = predictions.last().first_week_predicted_entries_france
+            movie.last_prediction = prediction_history.first_week_predicted_entries_france
 
     top_movies = sorted(next_week_movies, key=lambda x: x.last_prediction, reverse=True)
 
@@ -216,6 +210,8 @@ def import_csv(request):
 #
 # region setings / update_data
 #__________________________________________________________________________________________________
+from .utils import CustomDate
+from .business.prediction_utils import create_or_update_prediction
 from azure_blob_getter import AzureBlobStorageGetter
 def update_data(request):
     """
@@ -244,6 +240,9 @@ def update_data(request):
 
             # On récupère les films importés, supposant qu'ils sont dans le DataFrame
             #imported_movies = Movie.objects.filter(title__in=[log.split("✅")[1].strip() for log in logs if log.startswith("✅")])
+
+            # normalement ça devrait être "http://film-prediction-api.francecentral.azurecontainer.io:8000/predict"
+            fastapi_url = os.getenv("FASTAPI_URL")
 
             # Lancement des prédictions pour les films importés uniquement
             for movie_data in created_movies:
@@ -274,12 +273,15 @@ def update_data(request):
                      # ✅ Affichage du payload
                     logger.info(f"📦 Payload envoyé : {payload}")
 
+                  
+ 
                     # Envoi de la requête POST vers l'API de prédiction
                     response = requests.post(
-                        "http://localhost:8000/predict", 
+                        fastapi_url, 
                         json=payload,  # Envoi du payload au format JSON
                         timeout=10
                     )
+
                     response.raise_for_status()  # Soulever une exception si la réponse est une erreur HTTP
                     logger.info(f"📊 Résultat de la prédiction : {response.status_code }")
                     if response.status_code == 200:
@@ -291,16 +293,20 @@ def update_data(request):
                     logger.info(f"✅ Prédiction enregistrée pour prediction fastapi")
                     # Sauvegarde de la prédiction dans la base de données
                     try:
-                        movie_title = prediction_data.get("film_title")
-                        movie_obj = Movie.objects.get(title=movie_title)
-                        movie_id = movie_obj.id
                         
-                        PredictionHistory.objects.create(
-                        first_week_predicted_entries_france=prediction_data.get("predicted_fr_entries", 0),
-                        model_version=prediction_data.get("version", 0),
-                        date=dt.datetime.now().date(),
-                        movie_id =movie_id
-                        )
+                        movie_title = movie_data["title"]
+                        movie_date = CustomDate().parse_french_date(movie_data["release_date"])
+
+                        movie_obj = Movie.objects.filter(title=movie_title, release_date_fr=movie_date).first()
+                        movie_id = movie_obj.id
+
+                        first_week_predicted_entries_france=int(prediction_data.get("predicted_fr_entries", 0))
+                        prediction_deviation = 0 # haaaaaaaaannnn c'est maaaal !
+                        model_version=int(prediction_data.get("version", 0))
+                        date_prediction=dt.datetime.now().date()
+
+                        prediction_history = create_or_update_prediction(movie_id, first_week_predicted_entries_france, prediction_deviation, model_version, date_prediction)
+                        
                         logger.info(f"✅ Prédiction enregistrée pour {movie_data["title"]}")
                     except Movie.DoesNotExist:
                         print(f"Aucun film trouvé avec le titre : {movie_title}")

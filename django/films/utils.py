@@ -67,6 +67,7 @@ def process_movies_dataframe(df: pd.DataFrame) -> list:
                     first_week_actual_entries_france=fr_entries
                 )
                 logs.append(f"✅ Created: {title} ({release_date_fr})")
+                
             # Création du dictionnaire à envoyer à FastAPI
             movie_data = {
                     "title": title,

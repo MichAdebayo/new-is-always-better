@@ -56,13 +56,22 @@ def dashboard(request):
 
     current_week_broadcast_movies = []
     if room_1_movie :
+        prediction_history = PredictionHistory.objects.filter(movie_id=room_1_movie.id).first()
+        if prediction_history :
+            room_1_movie.last_prediction = prediction_history.first_week_predicted_entries_france
+
         current_week_broadcast_movies.append(room_1_movie)
+        
     else :
         empty_movie= get_empty_movie(today)
         empty_movie.room = 1
         current_week_broadcast_movies.append(empty_movie)
 
     if room_2_movie :
+        prediction_history = PredictionHistory.objects.filter(movie_id=room_2_movie.id).first()
+        if prediction_history :
+            room_2_movie.last_prediction = prediction_history.first_week_predicted_entries_france
+
         current_week_broadcast_movies.append(room_2_movie)
     else :
         empty_movie= get_empty_movie(today)
@@ -74,9 +83,9 @@ def dashboard(request):
     next_wednesday = last_wednesday + dt.timedelta(days=7)
     next_week_movies = get_week_movies(last_wednesday, next_wednesday)
     for movie in next_week_movies :
-        predictions = movie.predictions.all()
-        if len(predictions) >0 :
-            movie.last_prediction = predictions.last().first_week_predicted_entries_france
+        prediction_history = PredictionHistory.objects.filter(movie_id=movie.id).first()
+        if prediction_history :
+            movie.last_prediction = prediction_history.first_week_predicted_entries_france
     
     context = {
         'selected_movies': current_week_broadcast_movies, 

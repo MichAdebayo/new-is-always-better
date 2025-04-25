@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect
 from django.views.decorators.http import require_POST
 from datetime import datetime, date, timedelta
-from ..models import Recette, Broadcast
+from ..models import Recette, Broadcast, PredictionHistory
 from ..business.broadcast_utils import get_or_create_broadcast, get_or_create_recettes
 
 #______________________________________________________________________________
@@ -11,11 +11,30 @@ from ..business.broadcast_utils import get_or_create_broadcast, get_or_create_re
 def recettes_view(request):
 
     current_date = date.today()
+    next_week = current_date + timedelta(days=7)
 
-    broadcast = get_or_create_broadcast(current_date)
+    broadcast = get_or_create_broadcast(next_week)
     recettes = get_or_create_recettes(broadcast)
+    if broadcast.room_1 :
+        prediction_1 = PredictionHistory.objects.filter(movie_id = broadcast.room_1).first()
+        prediction_1_per_day = float(prediction_1.first_week_predicted_entries_france) / float(14000)
+    else :
+        prediction_1_per_day = 0.0
+
+    if broadcast.room_2 :
+        prediction_2 = PredictionHistory.objects.filter(movie_id = broadcast.room_1).first()
+        prediction_2_per_day = float(prediction_2.first_week_predicted_entries_france) / float(14000)
+    else :
+        prediction_2_per_day = 0.0
     
     for recette in recettes : 
+        recette.room_1_predicted = prediction_1_per_day
+        recette.room_2_predicted = prediction_2_per_day
+        recette.save() 
+
+    for recette in recettes : 
+        recette.room_1_predicted = int(recette.room_1_predicted)
+        recette.room_2_predicted = int(recette.room_2_predicted)
         recette.day_name = recette.date.strftime("%A")
         recette.total = recette.ticket_price * recette.room_1_actual + recette.ticket_price * recette.room_2_actual + recette.consumptions
     
