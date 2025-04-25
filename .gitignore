@@ -126,9 +126,11 @@ httpcache/
 *.png/
 
 local.settings.json
->>>>>>> FP-12-système-de-scrapping-automatique
-=======
 .ipynb_checkpoints/
 *.ipynb.amltmp
 *.env
->>>>>>> MLFlow
+
+
+django/staticfiles/
+django/logs
+django/node_modules
