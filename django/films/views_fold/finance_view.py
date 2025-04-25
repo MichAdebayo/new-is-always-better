@@ -6,7 +6,7 @@ from django.http import HttpResponse
 from django.shortcuts import render, redirect, get_object_or_404
 
 from ..models import Recette, Broadcast
-from ..broadcast_utils import get_or_create_broadcast, get_or_create_recettes
+from ..business.broadcast_utils import get_or_create_broadcast, get_or_create_recettes
 
 import csv
 import datetime as dt
@@ -51,6 +51,10 @@ def finance(request):
         'active_tab': 'finance'
     })
 
+#__________________________________________________________________________________________________
+#
+# region compute data
+#__________________________________________________________________________________________________
 def compute_finance_data(target_date : dt.date) -> dict :
 
     broadcast = get_or_create_broadcast(target_date)
