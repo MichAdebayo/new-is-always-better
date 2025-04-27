@@ -20,12 +20,8 @@ class MoviePredictionModel:
             model_path: Path to the pickled model file
         """
         if model_path is None:
-            # Utiliser le chemin absolu exact où se trouve le modèle
-            if os.name == 'nt':  # Windows
-                model_path = "C:\\Users\\asus\\OneDrive\\Bureau\\Formations\\FilmPrediction\\film-prediction\\movie_prediction_api\\model\\catboost_model.cbm"
-            else:
-                model_path = "/home/l-o/Projets/film-prediction/movie_prediction_api/model/catboost_model.cbm"
-                
+            model_path = "model/catboost_model.cbm"
+            
             # Ajoutez des logs pour le débogage
             logger.info(f"Looking for model at: {model_path}")
             logger.info(f"File exists: {os.path.exists(model_path)}")

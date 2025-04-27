@@ -1,27 +1,18 @@
-FROM python:3.9-slim
+# Utilise une image Python comme base
+FROM python:3.10-slim
 
-# Set working directory
+# Définir le répertoire de travail dans le conteneur
 WORKDIR /app
 
-# Set environment variables
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
-
-# Install dependencies
+# Copier les fichiers nécessaires dans le conteneur
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Copy project files
 COPY . .
 
-# Créez le dossier model s'il n'existe pas
-RUN mkdir -p /app/model
+# Installer les dépendances
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Copiez le modèle CatBoost
-COPY model/catboost_model.cbm /app/model/
+# Exposer le port de ton API si tu en as une (ex: Flask en 5000)
+EXPOSE 5000
 
-# Expose the port
-EXPOSE 8000
-
-# Set the entrypoint
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Commande pour démarrer ton application (ajuste selon ton script)
+CMD ["python", "main.py"]
