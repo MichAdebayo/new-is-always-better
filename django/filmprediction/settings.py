@@ -212,3 +212,7 @@ LOGGING = {
 }
 
 #FASTAPI_URL = "http://localhost:8000"
+
+LOGIN_URL = 'films:login'  # Redirige vers la page de login si non connecté
+LOGIN_REDIRECT_URL = 'dashboard'  # Redirige après une connexion réussie
+LOGOUT_REDIRECT_URL = 'films:login'  # Redirige après déconnexion

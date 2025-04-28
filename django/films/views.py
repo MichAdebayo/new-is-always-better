@@ -6,7 +6,8 @@ from django.db.models import Q
 from django.http import HttpResponse
 from django.shortcuts import render, redirect, get_object_or_404
 import requests
-
+from django.contrib.auth.views import LoginView, LogoutView
+from django.contrib.auth.decorators import login_required
 from .models import Movie, PredictionHistory, INITIAL_DATE_FORMAT_STRING
 
 from .data_importer import DataImporter
@@ -23,6 +24,7 @@ logger = logging.getLogger(__name__)  # Utilise le logger Django pour detecter l
 #
 # region top_ten_list
 #__________________________________________________________________________________________________
+@login_required
 def top_ten_list(request):
 
     today = dt.datetime.now()
@@ -96,6 +98,7 @@ def top_ten_list(request):
 #
 # region history
 #__________________________________________________________________________________________________
+@login_required
 def history(request):
     prediction_history = PredictionHistory.objects.all().order_by('date')
     return render(request, 'films/history.html', {
@@ -108,11 +111,13 @@ def history(request):
 #
 # region settings / import_csv
 #__________________________________________________________________________________________________
+@login_required
 def settings(request):
     return render(request, 'films/settings.html', {
         'active_tab': 'settings'
     })
 
+@login_required
 def import_csv(request):
     if request.method == 'POST' and request.FILES.get('csv_file'):
         try:
@@ -181,6 +186,7 @@ def import_csv(request):
 # region setings / update_data
 #__________________________________________________________________________________________________
 from azure_blob_getter import AzureBlobStorageGetter
+@login_required
 def update_data(request):
     """
     Mise à jour des films depuis Azure Blob et prédiction via API pour les films importés uniquement.
@@ -287,3 +293,40 @@ def update_data(request):
     return render(request, 'films/settings.html', {
         'active_tab': 'settings'
     })
+
+
+#__________________________________________________________________________________________________
+#
+# Authentification
+#__________________________________________________________________________________________________
+
+class CustomLoginView(LoginView):
+    template_name = 'films/login.html'
+
+"""class CustomLogoutView(LogoutView):
+    template_name = 'films/logout.html'
+
+    def get_next_page(self):
+        # Redirige l'utilisateur vers la page de connexion ou une autre page
+        return reverse_lazy('login')"""
+
+from django.contrib.auth import logout
+from django.shortcuts import redirect
+
+@login_required
+def custom_logout(request):
+    logout(request)
+    return redirect('login')  # Redirection vers la page de connexion
+
+#__________________________________________________________________________________________________
+#
+# Register
+#__________________________________________________________________________________________________
+from django.contrib.auth.forms import UserCreationForm
+from django.urls import reverse_lazy
+from django.views import generic
+
+class RegisterView(generic.CreateView):
+    form_class = UserCreationForm
+    template_name = 'films/register.html'
+    success_url = reverse_lazy('login')  # Après inscription, redirige vers la page de login

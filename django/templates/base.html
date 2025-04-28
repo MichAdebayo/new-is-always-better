@@ -12,7 +12,6 @@
     <!-- Alpine.js CDN -->
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <style>
-        /* Le synopsis est caché par défaut */
         .synopsis {
             display: none;
             position: absolute;
@@ -25,14 +24,34 @@
             border-radius: 5px;
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
         }
-
-        /* Le synopsis apparaît au survol de la ligne */
         tr:hover .synopsis {
             display: block;
         }
     </style>
 </head>
 <body class="bg-gray-100">
+
+<!-- TOP NAVIGATION -->
+<nav class="bg-blue-600 text-white px-4 py-3 flex justify-between items-center shadow-md">
+    <div class="text-xl font-bold">
+        <a href="#" class="cursor-not-allowed">🎬 Cinema Management</a>
+    </div>
+    <div class="space-x-4">
+        {% if user.is_authenticated %}
+            <span class="text-sm">👋 Bonjour, <strong>{{ user.username }}</strong></span>
+            <a href="{% url 'custom_logout' %}" class="ml-2 bg-red-500 hover:bg-red-600 text-white font-semibold py-1 px-3 rounded-full shadow">
+                Déconnexion
+            </a>
+        {% else %}
+            <a href="{% url 'login' %}" class="bg-green-500 hover:bg-green-600 text-white font-semibold py-1 px-3 rounded-full shadow">
+                Connexion
+            </a>
+            <a href="{% url 'register' %}" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-1 px-3 rounded-full shadow">
+                Créer un compte
+            </a>
+        {% endif %}
+    </div>
+</nav>
 
 <div class="min-h-screen flex flex-col sm:flex-row">
     <!-- Mobile Header -->
@@ -59,47 +78,48 @@
             <p class="text-sm text-gray-500">Cinema Management</p>
         </div>
         <nav class="mt-8">
-            <a href="{% url 'dashboard' %}"
-               class="w-full flex items-center px-4 py-3 {% if active_tab == 'dashboard' %}bg-blue-50 text-blue-600{% else %}text-gray-600 hover:bg-gray-50{% endif %}">
-                <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                          d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16"/>
-                </svg>
-                Dashboard
-            </a>
-            <a href="{% url 'top_ten_list' %}"
-               class="w-full flex items-center px-4 py-3 {% if active_tab == 'top-ten' %}bg-blue-50 text-blue-600{% else %}text-gray-600 hover:bg-gray-50{% endif %}">
-        
-                <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                         d="M3 4.5h14.25M3 9h9.75M3 13.5h5.25m5.25-.75L17.25 9m0 0L21 12.75M17.25 9v12" />
-                </svg>      
-                Top 10
-            </a>
-            <a href="{% url 'recettes' %}"
-               class="w-full flex items-center px-4 py-3 {% if active_tab == 'recettes' %}bg-blue-50 text-blue-600{% else %}text-gray-600 hover:bg-gray-50{% endif %}">
-                <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                          d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                </svg>
-                Recettes
-            </a>
-            <a href="{% url 'finance' %}"
-               class="w-full flex items-center px-4 py-3 {% if active_tab == 'finance' %}bg-blue-50 text-blue-600{% else %}text-gray-600 hover:bg-gray-50{% endif %}">
-                <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                          d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
-                </svg>
-                Finance
-            </a>
-            <a href="{% url 'settings' %}"
-            class="w-full flex items-center px-4 py-3 {% if active_tab == 'settings' %}bg-blue-50 text-blue-600{% else %}text-gray-600 hover:bg-gray-50{% endif %}">
-             <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                       d="M3 6l3 3m0 0l3-3m-3 3v10a2 2 0 002 2h8a2 2 0 002-2V9l-3 3m0 0l-3-3"/>
-             </svg>
-             Settings
-         </a>
+            {% if user.is_authenticated %}
+                <a href="{% url 'dashboard' %}"
+                   class="w-full flex items-center px-4 py-3 {% if active_tab == 'dashboard' %}bg-blue-50 text-blue-600{% else %}text-gray-600 hover:bg-gray-50{% endif %}">
+                    <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16"/>
+                    </svg>
+                    Dashboard
+                </a>
+                <a href="{% url 'top_ten_list' %}"
+                   class="w-full flex items-center px-4 py-3 {% if active_tab == 'top-ten' %}bg-blue-50 text-blue-600{% else %}text-gray-600 hover:bg-gray-50{% endif %}">
+                    <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                             d="M3 4.5h14.25M3 9h9.75M3 13.5h5.25m5.25-.75L17.25 9m0 0L21 12.75M17.25 9v12" />
+                    </svg>      
+                    Top 10
+                </a>
+                <a href="{% url 'recettes' %}"
+                   class="w-full flex items-center px-4 py-3 {% if active_tab == 'recettes' %}bg-blue-50 text-blue-600{% else %}text-gray-600 hover:bg-gray-50{% endif %}">
+                    <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    Recettes
+                </a>
+                <a href="{% url 'finance' %}"
+                   class="w-full flex items-center px-4 py-3 {% if active_tab == 'finance' %}bg-blue-50 text-blue-600{% else %}text-gray-600 hover:bg-gray-50{% endif %}">
+                    <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                    </svg>
+                    Finance
+                </a>
+                <a href="{% url 'settings' %}"
+                   class="w-full flex items-center px-4 py-3 {% if active_tab == 'settings' %}bg-blue-50 text-blue-600{% else %}text-gray-600 hover:bg-gray-50{% endif %}">
+                    <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M3 6l3 3m0 0l3-3m-3 3v10a2 2 0 002 2h8a2 2 0 002-2V9l-3 3m0 0l-3-3"/>
+                    </svg>
+                    Settings
+                </a>
+            {% endif %}
         </nav>
     </aside>
 

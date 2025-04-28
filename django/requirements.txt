@@ -35,3 +35,4 @@ scikit-learn==1.6.1
 pyodbc==5.2.0  # Pour SQL Server
 mssql-django==1.4.0
 pandas
+django-redis
