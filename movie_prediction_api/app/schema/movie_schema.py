@@ -1,3 +1,4 @@
+#movie_schema.py
 from pydantic import BaseModel, Field
 from typing import List, Optional, Dict, Any, Union
 
@@ -5,7 +6,7 @@ from typing import List, Optional, Dict, Any, Union
 class MovieInput(BaseModel):
     film_title: str
     release_date: str
-    duration: Optional[float]= None
+    duration: Optional[str]= None
     age_classification: Optional[str] = None
     producers: Optional[str] = None
     director: Optional[str] = None
@@ -24,7 +25,7 @@ class MovieInput(BaseModel):
 
 
 class MovieFeatures(BaseModel):
-    
+
     fr_entries: Optional[int] = None
     duration: Optional[float] = None
     synopsis_length: Optional[float] = None
@@ -195,8 +196,7 @@ class MovieFeatures(BaseModel):
 class MoviePrediction(BaseModel):
     film_title: str
     predicted_fr_entries: int
-    features: Dict[str, Any] = None
-
+    # features: Dict[str, Any] = None
 
 class BatchMovieInput(BaseModel):
     movies: List[MovieInput]
