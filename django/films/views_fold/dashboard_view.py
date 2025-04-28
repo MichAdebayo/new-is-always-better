@@ -13,6 +13,8 @@ from ..business.movie_list_utils import get_week_movies
 import csv
 import datetime as dt
 
+DATEPICKER_FORMAT_STRING="%Y-%m-%d"
+
 model_version = 0
 
 def get_empty_movie(fake_release_date : dt.date) :
@@ -34,14 +36,15 @@ def get_empty_movie(fake_release_date : dt.date) :
 #__________________________________________________________________________________________________
 def dashboard(request):
     
-    today = dt.datetime.now()
-
-    # pour le dev : décaler d'une semaine en avant 
-    # permet de vérifier que l'assignation d'un film à une salle 
-    # de la page 'top-ten' fonctionne
-    today = today + dt.timedelta(days=7)
+    selected_day = dt.datetime.now()
+    if request.method == "POST":
+        # Récupérer la date envoyée par le formulaire
+        selected_date_str = str(request.POST.get('selected_day'))
+        selected_date_str = selected_date_str.split('T')[0]
+        if selected_date_str:
+            selected_day = dt.datetime.strptime(selected_date_str, DATEPICKER_FORMAT_STRING)
    
-    broadcast = get_or_create_broadcast(today)
+    broadcast = get_or_create_broadcast(selected_day)
     room_1_movie = None
     if broadcast.room_1 :
         room_1_movie = Movie.objects.get(id= broadcast.room_1)
@@ -63,7 +66,7 @@ def dashboard(request):
         current_week_broadcast_movies.append(room_1_movie)
         
     else :
-        empty_movie= get_empty_movie(today)
+        empty_movie= get_empty_movie(selected_day)
         empty_movie.room = 1
         current_week_broadcast_movies.append(empty_movie)
 
@@ -74,12 +77,12 @@ def dashboard(request):
 
         current_week_broadcast_movies.append(room_2_movie)
     else :
-        empty_movie= get_empty_movie(today)
+        empty_movie= get_empty_movie(selected_day)
         empty_movie.room = 2
         current_week_broadcast_movies.append(empty_movie)
     
 
-    last_wednesday = get_start_wednesday(today)
+    last_wednesday = get_start_wednesday(selected_day)
     next_wednesday = last_wednesday + dt.timedelta(days=7)
     next_week_movies = get_week_movies(last_wednesday, next_wednesday)
     for movie in next_week_movies :
@@ -88,6 +91,7 @@ def dashboard(request):
             movie.last_prediction = prediction_history.first_week_predicted_entries_france
     
     context = {
+        'selected_day' : selected_day,
         'selected_movies': current_week_broadcast_movies, 
         'upcoming_movies': next_week_movies,
         'active_tab': 'dashboard'
