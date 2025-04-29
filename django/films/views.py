@@ -295,7 +295,7 @@ def update_data(request):
             # normalement ça devrait être 
             # fastapi_url="http://film-prediction-api.francecentral.azurecontainer.io:8000/predict"
             fastapi_url = os.getenv("FASTAPI_URL")
-
+            fastapi_url2 = os.getenv("FASTAPI_URL2")
             # Lancement des prédictions pour les films importés uniquement
             for movie_data in created_movies:
                 logger.info(f"✅ Prédiction enregistrée pour prediction fastapi")
@@ -334,12 +334,22 @@ def update_data(request):
                         timeout=10
                     )
 
-                    response.raise_for_status()  # Soulever une exception si la réponse est une erreur HTTP
-                    logger.info(f"📊 Résultat de la prédiction : {response.status_code }")
+                     # Envoi de la requête POST vers l'API de prédiction
+                    response2 = requests.post(
+                        fastapi_url2, 
+                        json=payload,  # Envoi du payload au format JSON
+                        timeout=10
+                    )
+
+                    #response.raise_for_status()  # Soulever une exception si la réponse est une erreur HTTP
+                    #logger.info(f"📊 Résultat de la prédiction : {response.status_code }")
                     if response.status_code == 200:
                         prediction_data = response.json()
                         logger.info(f"📊 Résultat de la prédiction : {prediction_data}")
 
+                    if response2.status_code == 200:
+                        prediction_data2 = response2.json()
+                        logger.info(f"📊 Résultat de la prédiction : {prediction_data2}")
                     # Sauvegarde de la prédiction dans la base de données
                     try:
                         
@@ -349,7 +359,19 @@ def update_data(request):
                         movie_obj = Movie.objects.filter(title=movie_title, release_date_fr=movie_date).first()
                         movie_id = movie_obj.id
 
-                        first_week_predicted_entries_france = int(prediction_data.get("Predictions", [0])[0])
+                        tmp_prediction1 = int(prediction_data.get("Predictions", [0])[0])
+                        tmp_prediction2 = int(prediction_data2.get("Predictions", [0])[0])
+                        
+                        if(tmp_prediction1 >= tmp_prediction2):
+                            tmp_prediction = tmp_prediction1
+                        else:
+                            tmp_prediction = tmp_prediction2
+                        
+                        if tmp_prediction < 0:
+                            tmp_prediction = -1 * tmp_prediction
+
+                        first_week_predicted_entries_france = tmp_prediction
+
                         prediction_deviation = 0 # haaaaaaaaannnn c'est maaaal !
                         model_version=int(prediction_data.get("version", 0))
                         date_prediction=dt.datetime.now().date()
