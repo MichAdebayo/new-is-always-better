@@ -142,5 +142,10 @@ def update_recette_fields(db_object : Recette, entries1 : int, entries2:int, con
 
     db_object.room_2_actual =  entries2   
     db_object.room_2_amount =  db_object.ticket_price * db_object.room_2_actual
+
     db_object.consumptions = consumptions
+    if db_object.consumptions < 0 :
+        db_object.consumptions = Decimal(0)
+
+    
     return db_object
