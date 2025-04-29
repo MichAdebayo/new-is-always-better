@@ -7,7 +7,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 
 from ..models import Broadcast, Movie, PredictionHistory, INITIAL_DATE_FORMAT_STRING
 from ..data_importer import DataImporter
-from ..business.broadcast_utils import get_or_create_broadcast, get_start_wednesday
+from ..business.broadcast_utils import get_or_create_broadcast, get_start_wednesday, get_room_total_entries
 from ..business.movie_list_utils import get_week_movies
 
 import csv
@@ -65,9 +65,9 @@ def dashboard(request):
         prediction_history = PredictionHistory.objects.filter(movie_id=room_1_movie.id).first()
         if prediction_history :
             room_1_movie.last_prediction = prediction_history.first_week_predicted_entries_france
+            room_1_movie.room_total_entries = get_room_total_entries(broadcast, 1)
 
         current_week_broadcast_movies.append(room_1_movie)
-        
     else :
         empty_movie= get_empty_movie(selected_day)
         empty_movie.room = 1
@@ -77,6 +77,7 @@ def dashboard(request):
         prediction_history = PredictionHistory.objects.filter(movie_id=room_2_movie.id).first()
         if prediction_history :
             room_2_movie.last_prediction = prediction_history.first_week_predicted_entries_france
+            room_2_movie.room_total_entries = get_room_total_entries(broadcast, 2)
 
         current_week_broadcast_movies.append(room_2_movie)
     else :
