@@ -174,7 +174,15 @@
 
             function onFlatpickrChange([selectedDate]) {
                 const wednesday = getWednesday(selectedDate);
-                document.getElementById('selected-date').value = formatDateForServer(wednesday);  // Machine format ici
+                const formattedDate = formatDateForServer(wednesday);  // Machine format ici
+                document.getElementById('selected-date').value = formattedDate;
+
+                // if there is another form which need the value of selected-date
+                let otherhiddenInput = document.getElementById('other-form-current-date');
+                if ( otherhiddenInput ) {
+                    otherhiddenInput.value = formattedDate;
+                }
+                
                 updateWeekPickerDisplay(selectedDate);
                 document.getElementById('date-form').submit();
             }

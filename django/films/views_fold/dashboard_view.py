@@ -13,7 +13,8 @@ from ..business.movie_list_utils import get_week_movies
 import csv
 import datetime as dt
 
-DATEPICKER_FORMAT_STRING="%Y-%m-%d"
+from django.conf import settings
+DATEPICKER_FORMAT_STRING = getattr(settings, "DATEPICKER_FORMAT_STRING", "%Y-%m-%d")
 
 model_version = 0
 

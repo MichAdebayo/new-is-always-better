@@ -23,6 +23,8 @@ import csv
 import datetime as dt
 import logging
 
+DATEPICKER_FORMAT_STRING = getattr(settings, "DATEPICKER_FORMAT_STRING", "%Y-%m-%d")
+
 model_version = 0
 
 logger = logging.getLogger(__name__)  # Utilise le logger Django pour detecter les erreurs
@@ -32,16 +34,22 @@ logger = logging.getLogger(__name__)  # Utilise le logger Django pour detecter l
 #__________________________________________________________________________________________________
 def top_ten_list(request):
 
-    today = dt.datetime.now()
+    selected_day = dt.datetime.now() + dt.timedelta(days=7) # par défaut
+    if request.method == "POST":
+        # Récupérer la date envoyée par le formulaire
+        selected_date_str = str(request.POST.get('selected_day'))
+        selected_date_str = selected_date_str.split('T')[0]
+        if selected_date_str:
+            selected_day = dt.datetime.strptime(selected_date_str, DATEPICKER_FORMAT_STRING)
 
-    start_wednesday = get_start_wednesday(today)
+    start_wednesday = get_start_wednesday(selected_day)
     end_wednesday = start_wednesday + dt.timedelta(days=7)
 
     next_week_movies = get_week_movies(start_wednesday, end_wednesday)
-    broadcast = get_or_create_broadcast(end_wednesday)   
+    broadcast = get_or_create_broadcast(start_wednesday) # the broadcast if for the next week  
 
-    from first_predictor import FirstPredictor
-    predictor = FirstPredictor(model_version)
+    # from first_predictor import FirstPredictor #unused : the prediction are allredy present in database
+    # predictor = FirstPredictor(model_version) #unused : the prediction are allredy present in database
 
     for movie in next_week_movies :
         if broadcast.room_1 == movie.id :
@@ -56,18 +64,19 @@ def top_ten_list(request):
 
         prediction_history = PredictionHistory.objects.filter(movie_id=movie.id).first()
         if not prediction_history :
-            (prediction, error) = predictor.predict(movie.title, movie.release_date_fr)
-            if (prediction, error) != (0,0) :
-                prediction_history = create_or_update_prediction(movie.id, prediction, error, predictor.model_version, date = today)
-                movie.last_prediction = prediction
-            else : 
-                movie.last_prediction = 0
+            # (prediction, error) = predictor.predict(movie.title, movie.release_date_fr) #unused : the prediction are allredy present in database
+            # if (prediction, error) != (0,0) : #unused : the prediction are allredy present in database
+            #     prediction_history = create_or_update_prediction(movie.id, prediction, error, predictor.model_version, date = selected_day) #unused : the prediction are allredy present in database
+            #     movie.last_prediction = prediction #unused : the prediction are allredy present in database
+            # else :  #unused : the prediction are allredy present in database
+            movie.last_prediction = 0
         else :
             movie.last_prediction = prediction_history.first_week_predicted_entries_france
 
     top_movies = sorted(next_week_movies, key=lambda x: x.last_prediction, reverse=True)
 
     return render(request, 'films/top_ten_list.html', {
+        'selected_day' : start_wednesday,
         'movies': top_movies[:10],  
         'active_tab': 'top-ten'
     })
@@ -78,6 +87,16 @@ def top_ten_list(request):
 #__________________________________________________________________________________________________
 @require_POST
 def update_top_ten_list(request):
+
+    selected_day = dt.datetime.now() + dt.timedelta(days=7) # page target week is next week
+    # Récupérer la date envoyée par le formulaire
+    selected_date_str = str(request.POST.get('other_form_current_date'))
+    selected_date_str = selected_date_str.split('T')[0]
+    if selected_date_str:
+        selected_day = dt.datetime.strptime(selected_date_str, DATEPICKER_FORMAT_STRING)
+
+    next_week = selected_day  
+
     room_1_checks = []
     room_2_checks = []
     for key, value in request.POST.items():
@@ -99,7 +118,7 @@ def update_top_ten_list(request):
                 except: 
                     pass
     
-    next_week = dt.datetime.now() + dt.timedelta(days=7)
+    
     broadcast = get_or_create_broadcast(next_week)
 
     broadcast.room_1 = assign_room(room_1_checks, broadcast.room_1)

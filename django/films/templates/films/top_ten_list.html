@@ -2,11 +2,35 @@
 
 {% block content %}
 <div class="space-y-6 px-4">
+
+    <!-- SECTION added by Nico for Date management { -->
+    <section class="bg-white shadow-md px-6 py-2 rounded-lg h-16">
+        <div class="max-w-4xl mx-auto">
+            
+            <form id="date-form" action="{% url 'top_ten_list' %}" method="POST">
+                {% csrf_token %}
+                <!-- Champ caché pour envoyer la date sélectionnée -->
+                <input type="hidden" id="selected-date" name="selected_day" value = "{{ selected_day|date:'Y-m-d'}}" />
+                
+                <div class="flex items-center space-x-4 h-full">
+                    <label for="week-picker" class="mr-4 text-lg">Films prévus la semaine du </label>
+                    <input id="week-picker" type="text" placeholder="SelectedDay" 
+                        data-datepicker-format="Y-m-d"
+                        value="{{ selected_day|date:'Y-m-d'}}"
+                        class="p-2 border rounded-lg shadow-sm w-48 focus:outline-none focus:ring-2 focus:ring-blue-400" />
+                </div>
+            </form>
+
+        </div>
+    </section>
+    <!-- } SECTION added by Nico for Date management -->
+
     <section class="bg-white rounded-lg shadow-md p-6">
         <h2 class="text-xl font-semibold text-gray-800 mb-4">Top 10 des films les plus récents</h2>
         <div class="overflow-x-auto w-full mt-8">
             <form method="post" action="{% url 'update_top_ten_list' %}">
                 {% csrf_token %}
+                <input type="hidden" id="other-form-current-date" name="other_form_current_date" value = "{{selected_day|date:'Y-m-d'}}"">
                 <table class="min-w-full table-auto bg-white border border-gray-300 rounded-lg shadow-lg">
                     <thead>
                         <tr class="bg-gray-200 text-gray-700">

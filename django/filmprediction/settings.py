@@ -178,4 +178,6 @@ LOGGING = {
     },
 }
 
+DATEPICKER_FORMAT_STRING="%Y-%m-%d"
+
 
