@@ -11,7 +11,8 @@ from django.conf import settings
 from typing import Optional
 
 import requests
-
+from django.contrib.auth.views import LoginView, LogoutView
+from django.contrib.auth.decorators import login_required
 from .models import Movie, PredictionHistory, INITIAL_DATE_FORMAT_STRING
 from .business.broadcast_utils import get_start_wednesday, get_or_create_broadcast
 from .business.movie_list_utils import get_week_movies
@@ -32,6 +33,7 @@ logger = logging.getLogger(__name__)  # Utilise le logger Django pour detecter l
 #
 # region top_ten_list
 #__________________________________________________________________________________________________
+@login_required
 def top_ten_list(request):
 
     selected_day = dt.datetime.now() + dt.timedelta(days=7) # par défaut
@@ -171,6 +173,7 @@ def assign_room(room_checks : list[int], room_id : Optional[int]) -> Optional[in
 #
 # region history
 #__________________________________________________________________________________________________
+@login_required
 def history(request):
     prediction_history = PredictionHistory.objects.all().order_by('date')
     return render(request, 'films/history.html', {
@@ -183,11 +186,13 @@ def history(request):
 #
 # region settings / import_csv
 #__________________________________________________________________________________________________
+@login_required
 def settings(request):
     return render(request, 'films/settings.html', {
         'active_tab': 'settings'
     })
 
+@login_required
 def import_csv(request):
     if request.method == 'POST' and request.FILES.get('csv_file'):
         try:
@@ -258,6 +263,7 @@ def import_csv(request):
 from .utils import CustomDate
 from .business.prediction_utils import create_or_update_prediction
 from azure_blob_getter import AzureBlobStorageGetter
+@login_required
 def update_data(request):
     """
     Mise à jour des films depuis Azure Blob et prédiction via API pour les films importés uniquement.
@@ -291,7 +297,7 @@ def update_data(request):
 
             # Lancement des prédictions pour les films importés uniquement
             for movie_data in created_movies:
-                logger.info(f"✅ Prédiction enregistrée pour prediction fastapi: {movie_data["title"]}")
+                logger.info(f"✅ Prédiction enregistrée pour prediction fastapi")
                 try:
                     # Création du payload avec les données du film
                     payload = {
@@ -333,9 +339,6 @@ def update_data(request):
                         prediction_data = response.json()
                         logger.info(f"📊 Résultat de la prédiction : {prediction_data}")
 
-                    prediction_data = response.json()
-                    #print(prediction_data)
-                    logger.info(f"✅ Prédiction enregistrée pour prediction fastapi")
                     # Sauvegarde de la prédiction dans la base de données
                     try:
                         
@@ -357,7 +360,7 @@ def update_data(request):
                         print(f"Aucun film trouvé avec le titre : {movie_title}")
 
                 except Exception as prediction_error:
-                    logger.warning(f"❌ Échec de la prédiction pour {movie_data["title"]}: {prediction_error}")
+                    logger.warning(f"❌ Échec de la prédiction: {prediction_error}")
 
             messages.success(request, f"{success_count} films importés, {error_count} erreurs. Prédictions générées pour les films importés.")
 
@@ -368,3 +371,40 @@ def update_data(request):
     return render(request, 'films/settings.html', {
         'active_tab': 'settings'
     })
+
+
+#__________________________________________________________________________________________________
+#
+# Authentification
+#__________________________________________________________________________________________________
+
+class CustomLoginView(LoginView):
+    template_name = 'films/login.html'
+
+"""class CustomLogoutView(LogoutView):
+    template_name = 'films/logout.html'
+
+    def get_next_page(self):
+        # Redirige l'utilisateur vers la page de connexion ou une autre page
+        return reverse_lazy('login')"""
+
+from django.contrib.auth import logout
+from django.shortcuts import redirect
+
+@login_required
+def custom_logout(request):
+    logout(request)
+    return redirect('login')  # Redirection vers la page de connexion
+
+#__________________________________________________________________________________________________
+#
+# Register
+#__________________________________________________________________________________________________
+from django.contrib.auth.forms import UserCreationForm
+from django.urls import reverse_lazy
+from django.views import generic
+
+class RegisterView(generic.CreateView):
+    form_class = UserCreationForm
+    template_name = 'films/register.html'
+    success_url = reverse_lazy('login')  # Après inscription, redirige vers la page de login

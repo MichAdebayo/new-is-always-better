@@ -124,12 +124,13 @@ httpcache/
 *.png/
 
 local.settings.json
-
 .ipynb_checkpoints/
 *.ipynb.amltmp
 *.env
 
-django/staticfiles/
-static/
 
- django/node_modules/
+django/staticfiles/
+django/logs
+django/node_modules
+static/
+django/node_modules/
