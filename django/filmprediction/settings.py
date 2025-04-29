@@ -220,3 +220,4 @@ LOGIN_REDIRECT_URL = 'dashboard'  # Redirige après une connexion réussie
 LOGOUT_REDIRECT_URL = 'films:login'  # Redirige après déconnexion
 
 DATEPICKER_FORMAT_STRING="%Y-%m-%d"
+FASTAPI_URL = os.getenv("FASTAPI_URL", "fake_fast_api_url")

@@ -292,7 +292,8 @@ def update_data(request):
             # On récupère les films importés, supposant qu'ils sont dans le DataFrame
             #imported_movies = Movie.objects.filter(title__in=[log.split("✅")[1].strip() for log in logs if log.startswith("✅")])
 
-            # normalement ça devrait être "http://film-prediction-api.francecentral.azurecontainer.io:8000/predict"
+            # normalement ça devrait être 
+            # fastapi_url="http://film-prediction-api.francecentral.azurecontainer.io:8000/predict"
             fastapi_url = os.getenv("FASTAPI_URL")
 
             # Lancement des prédictions pour les films importés uniquement
