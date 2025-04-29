@@ -1,11 +1,13 @@
 from django.shortcuts import render, redirect
 from django.views.decorators.http import require_POST
 from datetime import datetime, date, timedelta
-from ..models import Recette, Broadcast, PredictionHistory
+from ..models import Recette, Broadcast, PredictionHistory, NB_MAX_ROOM1, NB_MAX_ROOM2
 from ..business.broadcast_utils import get_start_wednesday, get_or_create_broadcast, get_or_create_recettes
 
 from django.conf import settings
 DATEPICKER_FORMAT_STRING = getattr(settings, "DATEPICKER_FORMAT_STRING", "%Y-%m-%d")
+
+from decimal import Decimal
 
 #______________________________________________________________________________
 # 
@@ -31,19 +33,23 @@ def recettes_view(request):
     if broadcast.room_1 :
         prediction_1 = PredictionHistory.objects.filter(movie_id = broadcast.room_1).first()
         if prediction_1 :
-            prediction_1_per_day = float(prediction_1.first_week_predicted_entries_france) / float(14000)
+            #prediction_1_per_day = float(prediction_1.first_week_predicted_entries_france) / float(14000)
+            prediction_1_per_day = float(prediction_1.first_week_predicted_entries_france) / float(7)
 
     prediction_2_per_day = 0.0
     if broadcast.room_2 :
         prediction_2 = PredictionHistory.objects.filter(movie_id = broadcast.room_1).first()
         if prediction_2 :
-            prediction_2_per_day = float(prediction_2.first_week_predicted_entries_france) / float(14000)   
+            #prediction_2_per_day = float(prediction_2.first_week_predicted_entries_france) / float(14000)   
+            prediction_2_per_day = float(prediction_2.first_week_predicted_entries_france) / float(7)   
     
     for recette in recettes : 
         recette.room_1_predicted = prediction_1_per_day
         recette.room_2_predicted = prediction_2_per_day
+        recette = update_recette_fields(recette, recette.room_1_actual, recette.room_2_actual, recette.consumptions)
         recette.save() 
 
+    # for display only
     for recette in recettes : 
         recette.room_1_predicted = int(recette.room_1_predicted)
         recette.room_2_predicted = int(recette.room_2_predicted)
@@ -93,11 +99,21 @@ def update_recettes(request):
             continue
 
         # Mise à jour des champs
-        db_recette.room_1_actual = int(request.POST.get(f'recettes[{index}][room_1_actual]', 0))
-        db_recette.room_2_actual = int(request.POST.get(f'recettes[{index}][room_2_actual]', 0))
-        db_recette.consumptions = float(request.POST.get(f'recettes[{index}][consumptions]', 0))
+        room_1_entries = int(request.POST.get(f'recettes[{index}][room_1_actual]', 0))  
+        room_2_entries = int(request.POST.get(f'recettes[{index}][room_2_actual]', 0))
+        consumptions = Decimal(request.POST.get(f'recettes[{index}][consumptions]', 0))
+
+        db_recette = update_recette_fields(db_recette, room_1_entries, room_2_entries, consumptions)
         db_recette.save()
         index += 1
+    
+    # for display only
+    for db_recette in db_recettes : 
+        db_recette.room_1_predicted = int(db_recette.room_1_predicted) # redefinition of room_1_predicted
+        db_recette.room_2_predicted = int(db_recette.room_2_predicted)  # redefinition of room_2_predicted
+        db_recette.day_name = db_recette.date.strftime("%A")
+        db_recette.total = db_recette.ticket_price * db_recette.room_1_actual + db_recette.ticket_price * db_recette.room_2_actual + db_recette.consumptions
+    
 
     current_wednesday = get_start_wednesday(current_date)
     context = {
@@ -109,6 +125,22 @@ def update_recettes(request):
     return render(request, 'films/recette.html', context)
 
 
+# added to do the same thing every times this is needed
+def update_recette_fields(db_object : Recette, entries1 : int, entries2:int, consumptions: Decimal ) -> Recette :
+    if entries1 > NB_MAX_ROOM1 :
+        entries1 = NB_MAX_ROOM1
+    elif entries1 <0 : 
+        entries1 = 0
 
+    db_object.room_1_actual =  entries1 
+    db_object.room_1_amount =  db_object.ticket_price * db_object.room_1_actual
 
+    if entries2 > NB_MAX_ROOM2 :
+        entries2 = NB_MAX_ROOM2
+    elif entries2 <0 : 
+        entries2 = 0
 
+    db_object.room_2_actual =  entries2   
+    db_object.room_2_amount =  db_object.ticket_price * db_object.room_2_actual
+    db_object.consumptions = consumptions
+    return db_object

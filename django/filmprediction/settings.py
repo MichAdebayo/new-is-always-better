@@ -34,7 +34,7 @@ SECRET_KEY = os.getenv("SECRET_KEY", "fake_secret_key")
 FASTAPI_URL = os.getenv("FASTAPI_URL", "fake_fast_api_url")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
 ALLOWED_HOSTS = ["*"]
 

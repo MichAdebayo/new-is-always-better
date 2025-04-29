@@ -1,5 +1,5 @@
 from datetime import date, timedelta
-from ..models import Broadcast, Recette
+from ..models import Broadcast, Recette, TICKET_PRICE
 
 def get_or_create_broadcast(current_date : date) -> Broadcast:
     broadcast = Broadcast.objects.filter(
@@ -32,7 +32,7 @@ def get_or_create_recettes(broadcast : Broadcast ) -> list[Recette]:
         recette = Recette(
             broadcast_id = broadcast.id,
             date = day_date, 
-            ticket_price=ticket_price)  
+            ticket_price=TICKET_PRICE)  
         recette.save()   
         recette_list.append(recette) 
 
@@ -65,3 +65,15 @@ def get_week_days(start_date : date) -> list[date]:
     days.append(start_date + timedelta(days=5))
     days.append(start_date + timedelta(days=6))
     return days
+
+def get_room_total_entries(broadcast : Broadcast, room_id : int) -> int :
+    recettes = get_or_create_recettes(broadcast)
+    total_entries = 0
+
+    for recette in recettes :
+        if room_id == 1: 
+            total_entries = total_entries + recette.room_1_actual
+        if room_id == 2: 
+            total_entries = total_entries + recette.room_2_actual
+
+    return total_entries

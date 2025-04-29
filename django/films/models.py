@@ -1,4 +1,5 @@
 from django.db import models
+from decimal import Decimal
 
 INITIAL_DATE_FORMAT_STRING = "%d/%m/%Y"
 ALLOCINE_DATE_FORMAT_STRING = "%d %B %Y"
@@ -33,6 +34,9 @@ class Broadcast (models.Model):
     room_1 =  models.IntegerField(null=True, blank=True)
     room_2 =  models.IntegerField(null=True, blank=True)
 
+NB_MAX_ROOM1 = int(120)
+NB_MAX_ROOM2 = int(80)
+TICKET_PRICE = Decimal (10.0)
     
 class Recette (models.Model):
     date = models.DateField()
