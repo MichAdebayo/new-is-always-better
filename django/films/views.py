@@ -42,7 +42,8 @@ def top_ten_list(request):
         if selected_date_str:
             selected_day = dt.datetime.strptime(selected_date_str, DATEPICKER_FORMAT_STRING)
 
-    start_wednesday = get_start_wednesday(selected_day)
+    selected_date = selected_day.date()
+    start_wednesday = get_start_wednesday(selected_date)
     end_wednesday = start_wednesday + dt.timedelta(days=7)
 
     next_week_movies = get_week_movies(start_wednesday, end_wednesday)
@@ -76,7 +77,7 @@ def top_ten_list(request):
     top_movies = sorted(next_week_movies, key=lambda x: x.last_prediction, reverse=True)
 
     return render(request, 'films/top_ten_list.html', {
-        'selected_day' : start_wednesday,
+        'selected_day' : dt.datetime.combine(start_wednesday,selected_day.time()),
         'movies': top_movies[:10],  
         'active_tab': 'top-ten'
     })
@@ -95,7 +96,7 @@ def update_top_ten_list(request):
     if selected_date_str:
         selected_day = dt.datetime.strptime(selected_date_str, DATEPICKER_FORMAT_STRING)
 
-    next_week = selected_day  
+    selected_week = selected_day.date()  
 
     room_1_checks = []
     room_2_checks = []
@@ -119,13 +120,38 @@ def update_top_ten_list(request):
                     pass
     
     
-    broadcast = get_or_create_broadcast(next_week)
-
+    broadcast = get_or_create_broadcast(selected_week)
     broadcast.room_1 = assign_room(room_1_checks, broadcast.room_1)
     broadcast.room_2 = assign_room(room_2_checks, broadcast.room_2)
     broadcast.save()
 
-    return redirect('top_ten_list')  
+    start_wednesday = get_start_wednesday(selected_week)
+    end_wednesday = start_wednesday + dt.timedelta(days=7)
+    next_week_movies = get_week_movies(start_wednesday, end_wednesday)
+    for movie in next_week_movies :
+        if broadcast.room_1 == movie.id :
+            movie.room1_checked = True
+        else : 
+            movie.room1_checked = False
+
+        if broadcast.room_2 == movie.id :
+            movie.room2_checked = True
+        else : 
+            movie.room2_checked = False
+
+        prediction_history = PredictionHistory.objects.filter(movie_id=movie.id).first()
+        if not prediction_history :
+            movie.last_prediction = 0
+        else :
+            movie.last_prediction = prediction_history.first_week_predicted_entries_france
+
+    top_movies = sorted(next_week_movies, key=lambda x: x.last_prediction, reverse=True)
+
+    return render(request, 'films/top_ten_list.html', {
+        'selected_day' : dt.datetime.combine(start_wednesday,selected_day.time()),
+        'movies': top_movies[:10],  
+        'active_tab': 'top-ten'
+    })
 
 def assign_room(room_checks : list[int], room_id : Optional[int]) -> Optional[int]: 
     num_checked = len(room_checks)

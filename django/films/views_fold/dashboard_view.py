@@ -45,7 +45,9 @@ def dashboard(request):
         if selected_date_str:
             selected_day = dt.datetime.strptime(selected_date_str, DATEPICKER_FORMAT_STRING)
    
-    broadcast = get_or_create_broadcast(selected_day)
+
+    start_wednesday = get_start_wednesday(selected_day.date())
+    broadcast = get_or_create_broadcast(start_wednesday)
     room_1_movie = None
     if broadcast.room_1 :
         room_1_movie = Movie.objects.get(id= broadcast.room_1)
@@ -82,10 +84,8 @@ def dashboard(request):
         empty_movie.room = 2
         current_week_broadcast_movies.append(empty_movie)
     
-
-    last_wednesday = get_start_wednesday(selected_day)
-    next_wednesday = last_wednesday + dt.timedelta(days=7)
-    next_week_movies = get_week_movies(last_wednesday, next_wednesday)
+    next_wednesday = start_wednesday + dt.timedelta(days=7)
+    next_week_movies = get_week_movies(start_wednesday, next_wednesday)
     for movie in next_week_movies :
         prediction_history = PredictionHistory.objects.filter(movie_id=movie.id).first()
         if prediction_history :

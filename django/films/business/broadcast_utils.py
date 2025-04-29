@@ -4,7 +4,7 @@ from ..models import Broadcast, Recette
 def get_or_create_broadcast(current_date : date) -> Broadcast:
     broadcast = Broadcast.objects.filter(
         start_date__lte=current_date, 
-        end_date__gte=current_date
+        end_date__gt=current_date
     ).first()
 
     if broadcast :

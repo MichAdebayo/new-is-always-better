@@ -6,7 +6,7 @@ from django.http import HttpResponse
 from django.shortcuts import render, redirect, get_object_or_404
 
 from ..models import Recette, Broadcast
-from ..business.broadcast_utils import get_or_create_broadcast, get_or_create_recettes
+from ..business.broadcast_utils import get_start_wednesday, get_or_create_broadcast, get_or_create_recettes
 
 import csv
 import datetime as dt
@@ -15,17 +15,28 @@ from decimal import Decimal
 ROOM_1_MAX_OCCUPATION = 120
 ROOM_2_MAX_OCCUPATION = 100
 
+from django.conf import settings
+DATEPICKER_FORMAT_STRING = getattr(settings, "DATEPICKER_FORMAT_STRING", "%Y-%m-%d")
+
 #__________________________________________________________________________________________________
 #
 # region finance
 #__________________________________________________________________________________________________
 def finance(request):
 
-    current_date = dt.date.today()
-    previous_date = current_date - dt.timedelta(days=7)
+    selected_day = dt.datetime.now() # par défaut même semaine que recettes
+    if request.method == "POST":
+        # Récupérer la date envoyée par le formulaire
+        selected_date_str = str(request.POST.get('selected_day'))
+        selected_date_str = selected_date_str.split('T')[0]
+        if selected_date_str:
+            selected_day = dt.datetime.strptime(selected_date_str, DATEPICKER_FORMAT_STRING)
 
-    current_result = compute_finance_data(current_date)
-    previous_result = compute_finance_data(previous_date)
+    current_wednesday = get_start_wednesday(selected_day.date())
+    previous_wednesday = current_wednesday - dt.timedelta(days=7)
+
+    current_result = compute_finance_data(current_wednesday)
+    previous_result = compute_finance_data(previous_wednesday)
     
     weekly_revenue = current_result["weekly_revenue"]
     weekly_costs = current_result["weekly_costs"]
@@ -36,7 +47,7 @@ def finance(request):
     profit_diff =  get_percent_variation(float(current_result["weekly_profit"]), float(previous_result["weekly_profit"]))
     occupation_diff = current_result["occupation_rate"] - previous_result["occupation_rate"]
    
-    metrics = {
+    metrics = { 
         'weekly_revenue': weekly_revenue,
         'weekly_costs': weekly_costs,
         'weekly_profit': weekly_profit,
@@ -47,6 +58,7 @@ def finance(request):
     }
     
     return render(request, 'films/financials.html', {
+        'selected_day' : dt.datetime.combine(current_wednesday, selected_day.time()),
         'metrics': metrics,
         'active_tab': 'finance'
     })
