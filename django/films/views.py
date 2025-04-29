@@ -247,7 +247,7 @@ def update_data(request):
                     try:
                         # Envoi de la requête POST vers l'API de prédiction
                         response = requests.post(
-                            "http://film-prediction-api.francecentral.azurecontainer.io:8000/predict", 
+                            "http://film-prediction-api.francecentral.azurecontainer.io:8000/predict_json", 
                             json=payload,  # Envoi du payload au format JSON
                             timeout=10
                         )
