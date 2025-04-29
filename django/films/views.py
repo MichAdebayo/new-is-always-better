@@ -349,7 +349,7 @@ def update_data(request):
                         movie_obj = Movie.objects.filter(title=movie_title, release_date_fr=movie_date).first()
                         movie_id = movie_obj.id
 
-                        first_week_predicted_entries_france=int(prediction_data.get("predicted_fr_entries", 0))
+                        first_week_predicted_entries_france = int(prediction_data.get("Predictions", [0])[0])
                         prediction_deviation = 0 # haaaaaaaaannnn c'est maaaal !
                         model_version=int(prediction_data.get("version", 0))
                         date_prediction=dt.datetime.now().date()
