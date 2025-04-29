@@ -2,40 +2,80 @@
 
 {% block content %}
 <div class="space-y-6 px-4">
+
+    <!-- SECTION added by Nico for Date management { -->
+    <section class="bg-white shadow-md px-6 py-2 rounded-lg h-16">
+        <div class="max-w-4xl mx-auto">
+            
+            <form id="date-form" action="{% url 'top_ten_list' %}" method="POST">
+                {% csrf_token %}
+                <!-- Champ caché pour envoyer la date sélectionnée -->
+                <input type="hidden" id="selected-date" name="selected_day" value = "{{ selected_day|date:'Y-m-d'}}" />
+                
+                <div class="flex items-center space-x-4 h-full">
+                    <label for="week-picker" class="mr-4 text-lg">Films prévus la semaine du </label>
+                    <input id="week-picker" type="text" placeholder="SelectedDay" 
+                        data-datepicker-format="Y-m-d"
+                        value="{{ selected_day|date:'Y-m-d'}}"
+                        class="p-2 border rounded-lg shadow-sm w-48 focus:outline-none focus:ring-2 focus:ring-blue-400" />
+                </div>
+            </form>
+
+        </div>
+    </section>
+    <!-- } SECTION added by Nico for Date management -->
+
     <section class="bg-white rounded-lg shadow-md p-6">
         <h2 class="text-xl font-semibold text-gray-800 mb-4">Top 10 des films les plus récents</h2>
         <div class="overflow-x-auto w-full mt-8">
-            <table class="min-w-full table-auto bg-white border border-gray-300 rounded-lg shadow-lg">
-                <thead>
-                    <tr class="bg-gray-200 text-gray-700">
-                        <th class="py-2 px-4 text-left">Sortie</th>
-                        <th class="py-2 px-4 text-left">Titre</th>
-                        <th class="py-2 px-4 text-left">Genre</th>
-                        <th class="py-2 px-4 text-left">Prediction</th>
-                        <th class="py-2 px-4 text-left">Realité</th>
-                        <th class="py-2 px-4 text-left">Salle 1</th>
-                        <th class="py-2 px-4 text-left">Salle 2</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for movie in movies %}
-                    <tr class="hover:bg-gray-100 relative">
-                        <td class="py-2 px-4">{{ movie.release_date_fr }}</td>
-                        <td class="py-2 px-4">{{ movie.title }}</td>
-                        <td class="py-2 px-4">{{ movie.genre }}</td>
-                        <td class="py-2 px-4 text-right">{{ movie.last_prediction }}</td>
-                        <td class="py-2 px-4 text-right">{{ movie.first_week_actual_entries_france }}</td>
-                        <td class="py-2 px-4">
-                            <input type="checkbox" name="selection" value="{{ article.id }}">
-                        </td>
-                        <td class="py-2 px-4">
-                            <input type="checkbox" name="selection" value="{{ article.id }}">
-                        </td>
-                        <td class="synopsis">{{ movie.synopsis }}</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+            <form method="post" action="{% url 'update_top_ten_list' %}">
+                {% csrf_token %}
+                <input type="hidden" id="other-form-current-date" name="other_form_current_date" value = "{{selected_day|date:'Y-m-d'}}"">
+                <table class="min-w-full table-auto bg-white border border-gray-300 rounded-lg shadow-lg">
+                    <thead>
+                        <tr class="bg-gray-200 text-gray-700">
+                            <th class="py-2 px-4 text-left">Sortie</th>
+                            <th class="py-2 px-4 text-left">Titre</th>
+                            <th class="py-2 px-4 text-left">Genre</th>
+                            <th class="py-2 px-4 text-left">Prediction</th>
+                            <th class="py-2 px-4 text-left">Realité</th>
+                            <th class="py-2 px-4 text-left">Salle 1</th>
+                            <th class="py-2 px-4 text-left">Salle 2</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for movie in movies %}
+                            <tr class="hover:bg-gray-100 relative">   
+                                <td class="py-2 px-4">{{ movie.release_date_fr }}</td>
+                                <td class="py-2 px-4">{{ movie.title }}</td>
+                                <td class="py-2 px-4">{{ movie.genre }}</td>
+                                <td class="py-2 px-4 text-right">{{ movie.last_prediction }}</td>
+                                <td class="py-2 px-4 text-right">{{ movie.first_week_actual_entries_france }}</td>
+                                <td class="py-2 px-4">
+                                    {% if movie.room1_checked %}
+                                        <input type="checkbox" name="room1_{{ movie.id }}" 
+                                            value="True" checked onchange="this.form.submit()">
+                                    {% else %} 
+                                        <input type="checkbox" name="room1_{{ movie.id }}" 
+                                            value="False" onchange="this.form.submit()">
+                                    {% endif %} 
+                                </td>
+                                <td class="py-2 px-4">
+                                    {% if movie.room2_checked %}
+                                        <input type="checkbox" name="room2_{{ movie.id }}" 
+                                            value="True" checked onchange="this.form.submit()">
+                                    {% else %} 
+                                        <input type="checkbox" name="room2_{{ movie.id }}" 
+                                            value="False" onchange="this.form.submit()">
+                                    {% endif %} 
+                                </td>
+                                <td class="synopsis">{{ movie.synopsis }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                <input type="submit" value="Envoyer" style="display: none;">
+            </form>
         </div>
     </section>
 </div>

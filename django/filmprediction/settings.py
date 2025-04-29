@@ -31,6 +31,8 @@ BLOB_NAME =  os.getenv("BLOB_NAME", "fake_blob_name")
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.getenv("SECRET_KEY", "fake_secret_key")
 
+FASTAPI_URL = os.getenv("FASTAPI_URL", "fake_fast_api_url")
+
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
@@ -176,4 +178,6 @@ LOGGING = {
     },
 }
 
-FASTAPI_URL = "http://localhost:8000"
+DATEPICKER_FORMAT_STRING="%Y-%m-%d"
+
+
