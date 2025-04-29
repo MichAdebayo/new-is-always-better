@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # Created by https://www.toptal.com/developers/gitignore/api/macos,linux,venv,visualstudiocode
 # Edit at https://www.toptal.com/developers/gitignore?templates=macos,linux,venv,visualstudiocode
 
@@ -112,9 +111,8 @@ db.sqlite3
 
 # gitignore
 .gitignore
-<<<<<<< HEAD
 theme/
-=======
+
 
 # cached http
 httpcache/
@@ -126,9 +124,12 @@ httpcache/
 *.png/
 
 local.settings.json
->>>>>>> FP-12-système-de-scrapping-automatique
-=======
+
 .ipynb_checkpoints/
 *.ipynb.amltmp
 *.env
->>>>>>> MLFlow
+
+django/staticfiles/
+static/
+
+ django/node_modules/
