@@ -24,5 +24,13 @@ def create_or_update_prediction(movie_id : int, first_week_predicted_entries_fr:
     prediction_history.save()
     return prediction_history
 
+def get_prediction_display_per_week(first_week_predicted_entries_france : int) -> float :
+    value = float(first_week_predicted_entries_france)/2000.0
+    return value
+
+def get_prediction_display_per_day(first_week_predicted_entries_france : int) -> float :
+    value = float(first_week_predicted_entries_france) / 14000.0
+    return value
+
     
     

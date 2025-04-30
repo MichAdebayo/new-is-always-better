@@ -1,5 +1,6 @@
 import os
 from django.contrib import messages
+from django.contrib.auth.decorators import login_required
 from django.core.files.storage import FileSystemStorage
 from django.db.models import Q
 from django.http import HttpResponse
@@ -9,6 +10,7 @@ from ..models import Broadcast, Movie, PredictionHistory, INITIAL_DATE_FORMAT_ST
 from ..data_importer import DataImporter
 from ..business.broadcast_utils import get_or_create_broadcast, get_start_wednesday, get_room_total_entries
 from ..business.movie_list_utils import get_week_movies
+from ..business.prediction_utils import get_prediction_display_per_week
 
 import csv
 import datetime as dt
@@ -35,6 +37,7 @@ def get_empty_movie(fake_release_date : dt.date) :
 #
 # region dashboard
 #__________________________________________________________________________________________________
+@login_required
 def dashboard(request):
     
     selected_day = dt.datetime.now()
@@ -64,7 +67,7 @@ def dashboard(request):
     if room_1_movie :
         prediction_history = PredictionHistory.objects.filter(movie_id=room_1_movie.id).first()
         if prediction_history :
-            room_1_movie.last_prediction = prediction_history.first_week_predicted_entries_france
+            room_1_movie.last_prediction = round(get_prediction_display_per_week(prediction_history.first_week_predicted_entries_france))
             room_1_movie.room_total_entries = get_room_total_entries(broadcast, 1)
 
         current_week_broadcast_movies.append(room_1_movie)
@@ -76,7 +79,7 @@ def dashboard(request):
     if room_2_movie :
         prediction_history = PredictionHistory.objects.filter(movie_id=room_2_movie.id).first()
         if prediction_history :
-            room_2_movie.last_prediction = prediction_history.first_week_predicted_entries_france
+            room_2_movie.last_prediction = round(get_prediction_display_per_week(prediction_history.first_week_predicted_entries_france))
             room_2_movie.room_total_entries = get_room_total_entries(broadcast, 2)
 
         current_week_broadcast_movies.append(room_2_movie)
@@ -90,7 +93,7 @@ def dashboard(request):
     for movie in next_week_movies :
         prediction_history = PredictionHistory.objects.filter(movie_id=movie.id).first()
         if prediction_history :
-            movie.last_prediction = prediction_history.first_week_predicted_entries_france
+            movie.last_prediction = round(get_prediction_display_per_week(prediction_history.first_week_predicted_entries_france))
     
     context = {
         'selected_day' : selected_day,

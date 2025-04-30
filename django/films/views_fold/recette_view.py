@@ -1,8 +1,10 @@
 from django.shortcuts import render, redirect
+from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
 from datetime import datetime, date, timedelta
 from ..models import Recette, Broadcast, PredictionHistory, NB_MAX_ROOM1, NB_MAX_ROOM2
 from ..business.broadcast_utils import get_start_wednesday, get_or_create_broadcast, get_or_create_recettes
+from ..business.prediction_utils import get_prediction_display_per_day
 
 from django.conf import settings
 DATEPICKER_FORMAT_STRING = getattr(settings, "DATEPICKER_FORMAT_STRING", "%Y-%m-%d")
@@ -33,15 +35,13 @@ def recettes_view(request):
     if broadcast.room_1 :
         prediction_1 = PredictionHistory.objects.filter(movie_id = broadcast.room_1).first()
         if prediction_1 :
-            #prediction_1_per_day = float(prediction_1.first_week_predicted_entries_france) / float(14000)
-            prediction_1_per_day = float(prediction_1.first_week_predicted_entries_france) / float(7)
+            prediction_1_per_day = get_prediction_display_per_day(prediction_1.first_week_predicted_entries_france)
 
     prediction_2_per_day = 0.0
     if broadcast.room_2 :
-        prediction_2 = PredictionHistory.objects.filter(movie_id = broadcast.room_1).first()
+        prediction_2 = PredictionHistory.objects.filter(movie_id = broadcast.room_2).first()
         if prediction_2 :
-            #prediction_2_per_day = float(prediction_2.first_week_predicted_entries_france) / float(14000)   
-            prediction_2_per_day = float(prediction_2.first_week_predicted_entries_france) / float(7)   
+            prediction_2_per_day = get_prediction_display_per_day(prediction_2.first_week_predicted_entries_france)
     
     for recette in recettes : 
         recette.room_1_predicted = prediction_1_per_day
@@ -51,8 +51,8 @@ def recettes_view(request):
 
     # for display only
     for recette in recettes : 
-        recette.room_1_predicted = int(recette.room_1_predicted)
-        recette.room_2_predicted = int(recette.room_2_predicted)
+        recette.room_1_predicted = round(recette.room_1_predicted)
+        recette.room_2_predicted = round(recette.room_2_predicted)
         recette.day_name = recette.date.strftime("%A")
         recette.total = recette.ticket_price * recette.room_1_actual + recette.ticket_price * recette.room_2_actual + recette.consumptions
     
@@ -68,6 +68,7 @@ def recettes_view(request):
 # 
 # region update_recettes
 #______________________________________________________________________________
+@login_required
 @require_POST
 def update_recettes(request):
 
@@ -85,6 +86,8 @@ def update_recettes(request):
     db_broadcast = get_or_create_broadcast(current_date)
     db_recettes = get_or_create_recettes(db_broadcast)
 
+
+
     index = 0
     while f'recettes[{index}][day]' in request.POST:
         day_str = request.POST.get(f'recettes[{index}][day]')
@@ -99,9 +102,23 @@ def update_recettes(request):
             continue
 
         # Mise à jour des champs
-        room_1_entries = int(request.POST.get(f'recettes[{index}][room_1_actual]', 0))  
-        room_2_entries = int(request.POST.get(f'recettes[{index}][room_2_actual]', 0))
-        consumptions = Decimal(request.POST.get(f'recettes[{index}][consumptions]', 0))
+        try :
+            room_1_entries_str = request.POST.get(f'recettes[{index}][room_1_actual]', 0) 
+            room_1_entries = int(room_1_entries_str)
+        except: 
+            room_1_entries = db_recette.room_1_actual
+
+        try : 
+            room_2_entries_str = request.POST.get(f'recettes[{index}][room_2_actual]', 0)
+            room_2_entries = int(room_2_entries_str)
+        except: 
+            room_2_entries = db_recette.room_2_actual
+
+        try :     
+            consumptions_str = request.POST.get(f'recettes[{index}][consumptions]', 0)
+            consumptions = Decimal(consumptions_str)
+        except: 
+            consumptions = db_recette.consumptions
 
         db_recette = update_recette_fields(db_recette, room_1_entries, room_2_entries, consumptions)
         db_recette.save()
@@ -110,7 +127,7 @@ def update_recettes(request):
     # for display only
     for db_recette in db_recettes : 
         db_recette.room_1_predicted = int(db_recette.room_1_predicted) # redefinition of room_1_predicted
-        db_recette.room_2_predicted = int(db_recette.room_2_predicted)  # redefinition of room_2_predicted
+        db_recette.room_2_predicted = int(db_recette.room_2_predicted) # redefinition of room_2_predicted
         db_recette.day_name = db_recette.date.strftime("%A")
         db_recette.total = db_recette.ticket_price * db_recette.room_1_actual + db_recette.ticket_price * db_recette.room_2_actual + db_recette.consumptions
     

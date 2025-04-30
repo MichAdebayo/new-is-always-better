@@ -1,5 +1,6 @@
 import os
 from django.contrib import messages
+from django.contrib.auth.decorators import login_required
 from django.core.files.storage import FileSystemStorage
 from django.db.models import Q
 from django.http import HttpResponse
@@ -67,6 +68,7 @@ def finance(request):
 #
 # region compute data
 #__________________________________________________________________________________________________
+@login_required
 def compute_finance_data(target_date : dt.date) -> dict :
 
     broadcast = get_or_create_broadcast(target_date)
