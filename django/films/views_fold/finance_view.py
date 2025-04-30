@@ -23,6 +23,7 @@ DATEPICKER_FORMAT_STRING = getattr(settings, "DATEPICKER_FORMAT_STRING", "%Y-%m-
 #
 # region finance
 #__________________________________________________________________________________________________
+@login_required
 def finance(request):
 
     selected_day = dt.datetime.now() # par défaut même semaine que recettes
@@ -68,7 +69,6 @@ def finance(request):
 #
 # region compute data
 #__________________________________________________________________________________________________
-@login_required
 def compute_finance_data(target_date : dt.date) -> dict :
 
     broadcast = get_or_create_broadcast(target_date)
