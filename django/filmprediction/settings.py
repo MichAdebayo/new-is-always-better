@@ -31,6 +31,8 @@ BLOB_NAME =  os.getenv("BLOB_NAME", "fake_blob_name")
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.getenv("SECRET_KEY", "fake_secret_key")
 
+FASTAPI_URL = os.getenv("FASTAPI_URL", "fake_fast_api_url")
+
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
@@ -39,6 +41,15 @@ ALLOWED_HOSTS = ["*"]
 
 # Application definition
 TAILWIND_APP_NAME = "theme"
+
+# Configuration de la base de données MSSQL
+MSSQL_ENGINE = 'mssql'
+MSSQL_NAME = os.getenv('databasedj_')  # Nom de la base de données
+MSSQL_USER = os.getenv('usernamedj_')  # Nom d'utilisateur
+MSSQL_PASSWORD = os.getenv('passworddj_')  # Mot de passe
+MSSQL_HOST = os.getenv('serverdj_')  # Nom du serveur Azure SQL
+MSSQL_PORT = os.getenv('portdj_')  # Port (1433 par défaut pour Azure SQL)
+
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -94,14 +105,40 @@ WSGI_APPLICATION = "filmprediction.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-DATABASES = {
+"""DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
         "NAME": BASE_DIR / "db.sqlite3",
     }
+}"""
+
+# Configuration de la base de données
+DATABASES = {
+    'default': {
+        'ENGINE': MSSQL_ENGINE,
+        'NAME': MSSQL_NAME,
+        'USER': MSSQL_USER,
+        'PASSWORD': MSSQL_PASSWORD,
+        'HOST': MSSQL_HOST,
+        'PORT': MSSQL_PORT,
+        'OPTIONS': {
+            'driver': 'ODBC Driver 18 for SQL Server',  # Utiliser le driver ODBC 18 pour SQL Server
+            'Encrypt': 'yes',  # Activer le chiffrement
+            'TrustServerCertificate': 'no',  # Ne pas faire confiance au certificat du serveur
+            'Connection Timeout': 30,  # Timeout de connexion
+        },
+    }
 }
 
-
+CACHES = {
+    'default': {
+        'BACKEND': 'django_redis.cache.RedisCache',
+        'LOCATION': 'redis://localhost:6379/1',
+        'OPTIONS': {
+            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+        }
+    }
+}
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
 
@@ -152,9 +189,35 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 
-# ubuntu local npm 
-NPM_BIN_PATH = "/usr/bin/npm"
-# windows local npm
-# NPM_BIN_PATH = "C:/Program Files/nodejs/npm.cmd"
+import platform
+
+if platform.system() == "Windows":
+    NPM_BIN_PATH = "C:/Program Files/nodejs/npm.cmd"
+else:
+    NPM_BIN_PATH = "/usr/bin/npm"
+
 
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'INFO',
+    },
+}
+
+#FASTAPI_URL = "http://localhost:8000"
+
+LOGIN_URL = 'films:login'  # Redirige vers la page de login si non connecté
+LOGIN_REDIRECT_URL = 'dashboard'  # Redirige après une connexion réussie
+LOGOUT_REDIRECT_URL = 'films:login'  # Redirige après déconnexion
+
+DATEPICKER_FORMAT_STRING="%Y-%m-%d"
+FASTAPI_URL = os.getenv("FASTAPI_URL", "fake_fast_api_url")

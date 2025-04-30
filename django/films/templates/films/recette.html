@@ -1,0 +1,102 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div x-data="{}" class="bg-white rounded-lg shadow-md">
+    <!-- SECTION added by Nico for Date management { -->
+    <section class="bg-white shadow-md px-6 py-2 rounded-lg h-16">
+        <div class="max-w-4xl mx-auto">
+            
+            <form id="date-form" action="{% url 'recettes' %}" method="POST">
+                {% csrf_token %}
+                <!-- Champ caché pour envoyer la date sélectionnée -->
+                <input type="hidden" id="selected-date" name="selected_day" value = "{{ selected_day|date:'Y-m-d'}}" />
+                
+                <div class="flex items-center space-x-4 h-full">
+                    <label for="week-picker" class="mr-4 text-lg">Début de la semaine </label>
+                    <input id="week-picker" type="text" placeholder="SelectedDay" 
+                        data-datepicker-format="Y-m-d"
+                        value="{{ selected_day|date:'Y-m-d'}}"
+                        class="p-2 border rounded-lg shadow-sm w-48 focus:outline-none focus:ring-2 focus:ring-blue-400" />
+                </div>
+            </form>
+
+        </div>
+    </section>
+    <!-- } SECTION added by Nico for Date management -->
+
+    <div class="p-6">
+        <h2 class="text-xl font-semibold text-gray-800 mb-4">
+            Recette du {{ broadcast.start_date }} au {{ broadcast.end_date }}
+        </h2>
+        <!-- control comment -->
+        <form method="post" action="{% url 'update_recettes' %}">
+            {% csrf_token %}
+            <input type="hidden" id="other-form-current-date" name="other_form_current_date" value = "{{selected_day|date:'Y-m-d'}}"">
+            <div class="hidden md:block overflow-x-auto">
+                <table class="w-full table-auto">
+                    <thead>
+                        <tr class="border-b text-left">
+                            <th class="py-3 px-4 align-bottom" rowspan="2">Jour</th>
+                            <th class="py-3 px-4 text-center" colspan="3">Salle 1</th>
+                            <th class="py-3 px-4 text-center" colspan="3">Salle 2</th>
+                            <th class="py-3 px-4 text-center" rowspan="2">Consommations</th>
+                            <th class="py-3 px-4 text-center" rowspan="2">Total</th>
+                        </tr>
+                        <tr class="border-b text-left">
+                            <th class="py-2 px-4 text-center">Prévision</th>
+                            <th class="py-2 px-4 text-center">Entrées</th>
+                            <th class="py-2 px-4 text-center">Recette</th>
+                            <th class="py-2 px-4 text-center">Prévision</th>
+                            <th class="py-2 px-4 text-center">Entrées</th>
+                            <th class="py-2 px-4 text-center">Recette</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for recette in recettes %}
+                        <tr class="border-b">
+                            <td class="py-3 px-4">{{ recette.day_name }}</td>
+                            <input type="hidden" name="recettes[{{ forloop.counter0 }}][day]" value="{{ recette.day_name }}">
+
+                            <!-- Salle 1 -->
+                            <td class="py-3 px-4 text-right">{{ recette.room_1_predicted }}</td>
+                            <td class="py-3 px-4 text-right">
+                                <input type="number" 
+                                    name="recettes[{{ forloop.counter0 }}][room_1_actual]" 
+                                    value="{{ recette.room_1_actual }}" 
+                                    class="w-12 min-w-[3rem] text-right border rounded-sm px-1 py-0.5">
+                            </td>
+                            <td class="py-3 px-4 text-right">{{ recette.room_1_amount }} €</td>
+
+                            <!-- Salle 2 -->
+                            <td class="py-3 px-4 text-right">{{ recette.room_2_predicted }}</td>
+                            <td class="py-3 px-4 text-right">
+                                <input type="number" 
+                                    name="recettes[{{ forloop.counter0 }}][room_2_actual]" 
+                                    value="{{ recette.room_2_actual }}" 
+                                    class="w-12 min-w-[3rem] text-right border rounded-sm px-1 py-0.5">
+                            </td>
+                            <td class="py-3 px-4 text-right">{{ recette.room_2_amount }} €</td>
+
+                            <td class="py-3 px-4 text-right">
+                                <input type="number" 
+                                    name="recettes[{{ forloop.counter0 }}][consumptions]" 
+                                    value="{{ recette.consumptions }}" 
+                                    class="w-12 min-w-[3rem] text-right border rounded-sm px-1 py-0.5"> €
+                            </td>
+                            <td class="py-3 px-4 text-right">{{ recette.total }} €</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Bouton -->
+            <div class="mt-6 text-right">
+                <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg shadow">
+                    Mettre à jour
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

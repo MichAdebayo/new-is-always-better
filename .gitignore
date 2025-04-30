@@ -112,3 +112,25 @@ db.sqlite3
 # gitignore
 .gitignore
 theme/
+
+
+# cached http
+httpcache/
+.scrapy/httpcache/
+.scrapy/
+
+# png
+.png
+*.png/
+
+local.settings.json
+.ipynb_checkpoints/
+*.ipynb.amltmp
+*.env
+
+
+django/staticfiles/
+django/logs
+django/node_modules
+static/
+django/node_modules/

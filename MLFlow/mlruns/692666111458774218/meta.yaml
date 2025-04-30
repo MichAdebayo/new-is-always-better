@@ -1,0 +1,6 @@
+artifact_location: file:///home/nicolascassonnet/Documents/WORK/film-prediction/MLFlow/mlruns/692666111458774218
+creation_time: 1743585731551
+experiment_id: '692666111458774218'
+last_update_time: 1743585731551
+lifecycle_stage: active
+name: XGBoost_Regression_Exp

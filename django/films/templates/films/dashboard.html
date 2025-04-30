@@ -1,58 +1,86 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block content %}
-<div x-data="{ showAllUpcoming: false }" class="space-y-6">
+<div x-data="{ showAllUpcoming: true }" class="space-y-6">
+
+    <!-- SECTION added by Nico for Date management { -->
+    <section class="bg-white shadow-md px-6 py-2 rounded-lg h-16">
+        <div class="max-w-4xl mx-auto">
+            
+            <form id="date-form" action="{% url 'dashboard' %}" method="POST">
+                {% csrf_token %}
+                <!-- Champ caché pour envoyer la date sélectionnée -->
+                <input type="hidden" id="selected-date" name="selected_day" value = "{{ selected_day|date:'Y-m-d'}}" />
+                
+                <div class="flex items-center space-x-4 h-full">
+                    <label for="week-picker" class="mr-4 text-lg">En salle dés le </label>
+                    <input id="week-picker" type="text" placeholder="SelectedDay" 
+                        data-datepicker-format="Y-m-d"
+                        value="{{ selected_day|date:'Y-m-d'}}"
+                        class="p-2 border rounded-lg shadow-sm w-48 focus:outline-none focus:ring-2 focus:ring-blue-400" />
+                </div>
+            </form>
+
+        </div>
+    </section>
+    <!-- } SECTION added by Nico for Date management -->
+
     <!-- Selected Movies -->
     <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {% for movie in selected_movies %}
-        <div class="bg-white rounded-lg shadow-md overflow-hidden flex flex-col">
-            <div class="relative h-48 sm:h-56">
-                <img src="{{ movie.image_url }}" alt="{{ movie.title }}" class="w-full h-full object-cover">
-                <div class="absolute top-2 right-2 bg-blue-600 text-white px-3 py-1 rounded-full text-sm">
-                    Room {{ movie.room }}
-                </div>
-            </div>
-            <div class="p-4 flex-1 flex flex-col">
-                <h3 class="text-lg sm:text-xl font-semibold text-gray-800">{{ movie.title }}</h3>
-                <p class="text-sm text-gray-500 mt-1">{{ movie.genre }}, {{ movie.release_date_fr }}</p>
-                <div class="mt-3">
-                    <h4 class="text-sm font-medium text-gray-700">Cast:</h4>
-                    <p class="text-sm text-gray-600">{{ movie.cast }}</p>
-                </div>
-                <p class="mt-3 text-sm text-gray-600 line-clamp-2">{{ movie.synopsis }}</p>
-                <div class="mt-4 flex items-center justify-between mt-auto">
-                    <span class="text-sm font-medium text-gray-700">Première semaine, France:</span>
-                    <span class="text-lg font-semibold text-blue-600">
-                        {% if movie.first_week_actual_entries_france %} 
-                            {{ movie.first_week_actual_entries_france }}
-                        {% else %}
-                            non disponible
-                        {% endif %}
-                    </span>
-                </div>
-                <form method="post" action="{% url 'run_movie_prediction' movie.id %}">
-                    {% csrf_token %}
-                    <div class="flex justify-center">
-                        <button type="submit" class="bg-blue-600 text-white py-1 px-3 text-sm rounded">Make a prediction</button>
+            <div class="bg-white rounded-lg shadow-md overflow-hidden flex flex-col">
+                <div class="relative h-48 sm:h-56">
+                    {% if movie.empty %}
+                        <img src="{% static 'salle_de_cinema_vide.png' %}" alt="empty cinema room image">    
+                    {% else %}
+                        <img src="{{ movie.image_url }}" alt="{{ movie.title }}" class="w-full h-full object-cover">
+                    {% endif %}
+                    <div class="absolute top-2 right-2 bg-blue-600 text-white px-3 py-1 rounded-full text-sm">
+                        Salle {{ movie.room }}
                     </div>
-                    <div class="mt-4 flex items-center justify-between mt-auto">   
-                        <span class="text-sm font-medium text-gray-700">Prediction :</span>
-                        {% if movie.last_prediction %}
-                            <span class="text-lg font-semibold text-blue-600">{{ movie.last_prediction }}</span>
-                        {% else %}
-                            <span class="text-lg font-semibold text-blue-600"> non disponible </span>
-                        {% endif %}
+                </div>
+                {% if movie.empty %}
+                    <div class="p-4 bg-red-100 border border-red-500">
+                        <h3 class="text-lg sm:text-xl font-semibold text-red-800">Pas de film prévu</h3>
                     </div>
-                </form>
+                {% else %}
+                    <div class="p-4 flex-1 flex flex-col">
+                        <h3 class="text-lg sm:text-xl font-semibold text-gray-800">{{ movie.title }}</h3>
+                        <p class="text-sm text-gray-500 mt-1">{{ movie.genre }}, {{ movie.release_date_fr }}</p>
+                        <div class="mt-3">
+                            <h4 class="text-sm font-medium text-gray-700">Cast:</h4>
+                            <p class="text-sm text-gray-600">{{ movie.cast }}</p>
+                        </div>
+                        <p class="mt-3 text-sm text-gray-600 line-clamp-2">{{ movie.synopsis }}</p>
+                        <div class="mt-4 flex items-center justify-between mt-auto">
+                            <span class="text-sm font-medium text-gray-700">Entrées vendues :</span>
+                            <span class="text-lg font-semibold text-blue-600">
+                                {% if movie.room_total_entries %} 
+                                    {{ movie.room_total_entries }}
+                                {% else %}
+                                    0
+                                {% endif %}
+                            </span>
+                        </div>
+                        <div class="mt-4 flex items-center justify-between mt-auto">   
+                            <span class="text-sm font-medium text-gray-700">Prédiction première semaine :</span>
+                            {% if movie.last_prediction %}
+                                <span class="text-lg font-semibold text-blue-600">{{ movie.last_prediction }}</span>
+                            {% else %}
+                                <span class="text-lg font-semibold text-blue-600"> - </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endif %}
             </div>
-        </div>
         {% endfor %}
     </section>
 
     <!-- Upcoming Movies -->
     <section class="bg-white rounded-lg shadow-md p-6">
         <div class="flex items-center justify-between mb-4">
-            <h2 class="text-xl font-semibold text-gray-800">Upcoming Releases</h2>
+            <h2 class="text-xl font-semibold text-gray-800">Sorties à venir</h2>
             <button @click="showAllUpcoming = !showAllUpcoming" class="text-sm text-blue-600 hover:underline">
                 <span x-text="showAllUpcoming ? 'Show less' : 'Show all'"></span>
             </button>
@@ -66,29 +94,23 @@
                         <h3 class="font-medium text-gray-800 text-sm sm:text-base">{{ movie.title }}</h3>
                         <p class="text-sm text-gray-500">{{ movie.genre }}, {{ movie.release_date_fr }}</p>
                         <div class="mt-4 flex items-center justify-between mt-auto">
-                            <span class="text-sm font-medium text-gray-700">Actual entries, France:</span>
+                            <span class="text-sm font-medium text-gray-700">Entrées première semaine:</span>
                             <span class="text-lg font-semibold text-blue-600">
                                 {% if movie.first_week_actual_entries_france %} 
                                     {{ movie.first_week_actual_entries_france }}
                                 {% else %}
-                                    non disponible
+                                    -
                                 {% endif %}
                             </span>
                         </div>
-                        <form method="post" action="{% url 'run_movie_prediction' movie.id %}">
-                            {% csrf_token %}
-                            <div class="flex justify-center">
-                                <button type="submit" class="bg-blue-600 text-white py-1 px-3 text-sm rounded">Make a prediction</button>
-                            </div>
-                            <div class="mt-4 flex items-center justify-between mt-auto">   
-                                <span class="text-sm font-medium text-gray-700">First week, France :</span>
-                                {% if movie.last_prediction %}
-                                    <span class="text-lg font-semibold text-blue-600">{{ movie.last_prediction }}</span>
-                                {% else %}
-                                    <span class="text-lg font-semibold text-blue-600"> not available </span>
-                                {% endif %}
-                            </div>
-                        </form>
+                        <div class="mt-4 flex items-center justify-between mt-auto">   
+                            <span class="text-sm font-medium text-gray-700">prédiction première semaine:</span>
+                            {% if movie.last_prediction %}
+                                <span class="text-lg font-semibold text-blue-600">{{ movie.last_prediction }}</span>
+                            {% else %}
+                                <span class="text-lg font-semibold text-blue-600"> - </span>
+                            {% endif %}
+                        </div>
                     </div>
                 </div>
             </template>

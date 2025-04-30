@@ -2,6 +2,29 @@
 
 {% block content %}
 <div class="space-y-6" x-data="{ openSummary: true }">
+
+    <!-- SECTION added by Nico for Date management { -->
+    <section class="bg-white shadow-md px-6 py-2 rounded-lg h-16">
+        <div class="max-w-4xl mx-auto">
+            
+            <form id="date-form" action="{% url 'finance' %}" method="POST">
+                {% csrf_token %}
+                <!-- Champ caché pour envoyer la date sélectionnée -->
+                <input type="hidden" id="selected-date" name="selected_day" value = "{{ selected_day|date:'Y-m-d'}}" />
+                
+                <div class="flex items-center space-x-4 h-full">
+                    <label for="week-picker" class="mr-4 text-lg">Semaine du </label>
+                    <input id="week-picker" type="text" placeholder="SelectedDay" 
+                        data-datepicker-format="Y-m-d"
+                        value="{{ selected_day|date:'Y-m-d'}}"
+                        class="p-2 border rounded-lg shadow-sm w-48 focus:outline-none focus:ring-2 focus:ring-blue-400" />
+                </div>
+            </form>
+
+        </div>
+    </section>
+    <!-- } SECTION added by Nico for Date management -->
+
     <!-- Metrics Grid -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
         <!-- Weekly Revenue -->
@@ -18,7 +41,7 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
                     </svg>
-                    12.6%
+                    {{ metrics.revenue_diff |floatformat:0}}%
                 </span>
             </div>
             <h3 class="mt-4 text-2xl font-semibold text-gray-800">€{{ metrics.weekly_revenue }}</h3>
@@ -39,14 +62,14 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
                     </svg>
-                    8.2%
+                    {{ metrics.profit_diff|floatformat:0 }}%
                 </span>
             </div>
             <h3 class="mt-4 text-2xl font-semibold text-gray-800">€{{ metrics.weekly_profit }}</h3>
             <p class="text-sm text-gray-500">Weekly Profit</p>
         </div>
 
-        <!-- Occupancy Rate -->
+        <!-- Occupation Rate -->
         <div class="bg-white rounded-lg shadow-md p-6">
             <div class="flex items-center justify-between">
                 <div class="p-2 bg-blue-100 rounded-lg">
@@ -60,11 +83,11 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
                     </svg>
-                    5.3%
+                    {{ metrics.occupation_diff|floatformat:0 }}%
                 </span>
             </div>
-            <h3 class="mt-4 text-2xl font-semibold text-gray-800">{{ metrics.occupancy_rate }}%</h3>
-            <p class="text-sm text-gray-500">Occupancy Rate</p>
+            <h3 class="mt-4 text-2xl font-semibold text-gray-800">{{ metrics.occupation_rate|floatformat:0 }}%</h3>
+            <p class="text-sm text-gray-500">Occupation Rate</p>
         </div>
     </div>
 

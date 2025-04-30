@@ -1,146 +1,181 @@
+import io
 import os
 from django.contrib import messages
 from django.core.files.storage import FileSystemStorage
 from django.db.models import Q
 from django.http import HttpResponse
 from django.shortcuts import render, redirect, get_object_or_404
+from django.views.decorators.http import require_POST
+from django.conf import settings
 
+from typing import Optional
+
+import requests
+from django.contrib.auth.views import LoginView, LogoutView
+from django.contrib.auth.decorators import login_required
 from .models import Movie, PredictionHistory, INITIAL_DATE_FORMAT_STRING
+from .business.broadcast_utils import get_start_wednesday, get_or_create_broadcast
+from .business.movie_list_utils import get_week_movies
+from .business.prediction_utils import get_prediction_display_per_week
 
 from .data_importer import DataImporter
+from .utils import process_movies_dataframe
 
 import csv
 import datetime as dt
+import logging
+
+DATEPICKER_FORMAT_STRING = getattr(settings, "DATEPICKER_FORMAT_STRING", "%Y-%m-%d")
 
 model_version = 0
 
+logger = logging.getLogger(__name__)  # Utilise le logger Django pour detecter les erreurs
 #__________________________________________________________________________________________________
 #
 # region top_ten_list
 #__________________________________________________________________________________________________
+@login_required
 def top_ten_list(request):
 
-    today = dt.datetime.now()
-    start_wednesday = today
+    selected_day = dt.datetime.now() + dt.timedelta(days=7) # par défaut
+    if request.method == "POST":
+        # Récupérer la date envoyée par le formulaire
+        selected_date_str = str(request.POST.get('selected_day'))
+        selected_date_str = selected_date_str.split('T')[0]
+        if selected_date_str:
+            selected_day = dt.datetime.strptime(selected_date_str, DATEPICKER_FORMAT_STRING)
 
-    day_of_week = today.weekday() # 0 = Lundi, 6 = Dimanche
-    match day_of_week :
-        case 0 : start_wednesday = today + dt.timedelta(days=2)
-        case 1 : start_wednesday = today + dt.timedelta(days=1)
-        case 2 : start_wednesday = today 
-        case 3 : start_wednesday = today + dt.timedelta(days=6)
-        case 4 : start_wednesday = today + dt.timedelta(days=5)
-        case 5 : start_wednesday = today + dt.timedelta(days=4)
-        case 6 : start_wednesday = today + dt.timedelta(days=3)
-
+    selected_date = selected_day.date()
+    start_wednesday = get_start_wednesday(selected_date)
     end_wednesday = start_wednesday + dt.timedelta(days=7)
 
-    # debug only : { 
-    start_wednesday = start_wednesday - dt.timedelta(days=14)
-    # } debug only 
-    
-    limit_date = today - dt.timedelta(days=21)
-    top_movies = Movie.objects.filter(  
-            release_date_fr__gt = limit_date
-        ).order_by(
-            '-release_date_fr'
-        ).prefetch_related('predictions').all()
+    next_week_movies = get_week_movies(start_wednesday, end_wednesday)
+    broadcast = get_or_create_broadcast(start_wednesday) # the broadcast if for the next week  
 
-    next_week_movies = []
-    for movie in top_movies :
-        release_datetime = dt.datetime.combine(movie.release_date_fr, today.time())
-        if release_datetime < start_wednesday :
-            continue
-    
-        if release_datetime >= end_wednesday :
-            continue
-
-        next_week_movies.append(movie)
-
-    from first_predictor import FirstPredictor
-    predictor = FirstPredictor(model_version)
+    # from first_predictor import FirstPredictor #unused : the prediction are allredy present in database
+    # predictor = FirstPredictor(model_version) #unused : the prediction are allredy present in database
 
     for movie in next_week_movies :
-        predictions = movie.predictions.all()
-        if len(predictions) == 0 :
-            (prediction, error) = predictor.predict(movie.title, "")
+        if broadcast.room_1 == movie.id :
+            movie.room1_checked = True
+        else : 
+            movie.room1_checked = False
 
-            new_entry = PredictionHistory(
-                movie_id = movie.id, 
-                first_week_predicted_entries_france = prediction, 
-                prediction_error = error,
-                model_version = predictor.model_version,
-                date = today
-            )
-            new_entry.save()
-            movie.last_prediction = prediction
+        if broadcast.room_2 == movie.id :
+            movie.room2_checked = True
+        else : 
+            movie.room2_checked = False
+
+        prediction_history = PredictionHistory.objects.filter(movie_id=movie.id).first()
+        if not prediction_history :
+            # (prediction, error) = predictor.predict(movie.title, movie.release_date_fr) #unused : the prediction are allredy present in database
+            # if (prediction, error) != (0,0) : #unused : the prediction are allredy present in database
+            #     prediction_history = create_or_update_prediction(movie.id, prediction, error, predictor.model_version, date = selected_day) #unused : the prediction are allredy present in database
+            #     movie.last_prediction = prediction #unused : the prediction are allredy present in database
+            # else :  #unused : the prediction are allredy present in database
+            movie.last_prediction = 0
         else :
-            movie.last_prediction = predictions.last().first_week_predicted_entries_france
+            movie.last_prediction = round(get_prediction_display_per_week(prediction_history.first_week_predicted_entries_france))
 
     top_movies = sorted(next_week_movies, key=lambda x: x.last_prediction, reverse=True)
 
-    return render(request, 'films/top_ten_list.html', {'movies': top_movies[:10]})
+    return render(request, 'films/top_ten_list.html', {
+        'selected_day' : dt.datetime.combine(start_wednesday,selected_day.time()),
+        'movies': top_movies[:10],  
+        'active_tab': 'top-ten'
+    })
 
 #__________________________________________________________________________________________________
 #
-# region dashboard
+# region update_top_ten_list
 #__________________________________________________________________________________________________
-def dashboard(request):
+@login_required
+@require_POST
+def update_top_ten_list(request):
+
+    selected_day = dt.datetime.now() + dt.timedelta(days=7) # page target week is next week
+    # Récupérer la date envoyée par le formulaire
+    selected_date_str = str(request.POST.get('other_form_current_date'))
+    selected_date_str = selected_date_str.split('T')[0]
+    if selected_date_str:
+        selected_day = dt.datetime.strptime(selected_date_str, DATEPICKER_FORMAT_STRING)
+
+    selected_week = selected_day.date()  
+
+    room_1_checks = []
+    room_2_checks = []
+    for key, value in request.POST.items():
+        if key.startswith('room1_'):
+            movie_room_id = key.split('_')[1]
+            if value : 
+                try :
+                    checked_id = int(movie_room_id)
+                    room_1_checks.append(checked_id)
+                except: 
+                    pass
+            
+        elif key.startswith('room2_'):
+            movie_room_id = key.split('_')[1]
+            if value : 
+                try :
+                    checked_id = int(movie_room_id)
+                    room_2_checks.append(checked_id)
+                except: 
+                    pass
     
-    today = dt.datetime.now()
-    limit_date =  today - dt.timedelta(days=30)
-
-    recent_movies = Movie.objects.filter(  
-            release_date_fr__gt = limit_date
-        ).order_by(
-            '-release_date_fr'
-        ).prefetch_related('predictions').all()
-
-    for movie in recent_movies :
-        predictions = movie.predictions.all()
-        if len(predictions) >0 :
-            movie.last_prediction = predictions.last().first_week_predicted_entries_france
-
-    selected_movies = recent_movies[:2]
-    upcoming_movies = recent_movies[2:] 
     
-    context = {
-        'selected_movies': selected_movies, 
-        'upcoming_movies': upcoming_movies
-    }
+    broadcast = get_or_create_broadcast(selected_week)
+    broadcast.room_1 = assign_room(room_1_checks, broadcast.room_1)
+    broadcast.room_2 = assign_room(room_2_checks, broadcast.room_2)
+    broadcast.save()
 
-    return render(request, 'films/dashboard.html', context)
+    start_wednesday = get_start_wednesday(selected_week)
+    end_wednesday = start_wednesday + dt.timedelta(days=7)
+    next_week_movies = get_week_movies(start_wednesday, end_wednesday)
+    for movie in next_week_movies :
+        if broadcast.room_1 == movie.id :
+            movie.room1_checked = True
+        else : 
+            movie.room1_checked = False
 
-#__________________________________________________________________________________________________
-#
-# region run_movie_prediction
-#__________________________________________________________________________________________________
-def run_movie_prediction(request, movie_id) :
-    movie = get_object_or_404(Movie, id=movie_id)
+        if broadcast.room_2 == movie.id :
+            movie.room2_checked = True
+        else : 
+            movie.room2_checked = False
 
-    from first_predictor import FirstPredictor
-    predictor = FirstPredictor(model_version)
-    (prediction, error) = predictor.predict(movie.title, "")
-    
-    import datetime as dt
-    today = dt.datetime.now().date()
+        prediction_history = PredictionHistory.objects.filter(movie_id=movie.id).first()
+        if not prediction_history :
+            movie.last_prediction = 0
+        else :
+            movie.last_prediction = round(get_prediction_display_per_week(prediction_history.first_week_predicted_entries_france))
 
-    new_entry = PredictionHistory(
-        movie_id = movie.id, 
-        first_week_predicted_entries_france = prediction, 
-        prediction_error = error,
-        model_version = predictor.model_version,
-        date = today
-    )
-    new_entry.save()
+    top_movies = sorted(next_week_movies, key=lambda x: x.last_prediction, reverse=True)
 
-    messages.success(request, f"Action launched for the movie: {movie.title}")
-    return redirect('dashboard')  
+    return render(request, 'films/top_ten_list.html', {
+        'selected_day' : dt.datetime.combine(start_wednesday,selected_day.time()),
+        'movies': top_movies[:10],  
+        'active_tab': 'top-ten'
+    })
+
+def assign_room(room_checks : list[int], room_id : Optional[int]) -> Optional[int]: 
+    num_checked = len(room_checks)
+    if num_checked == 1 :
+        return room_checks[0] # the only one
+    elif num_checked > 1 :
+        if room_id : 
+            other_id = next((x for x in room_checks if x != room_id), None) 
+            return other_id # the new one
+        else : 
+            return room_checks[0] # the first one is ok 
+    else :
+        return None
+
 
 #__________________________________________________________________________________________________
 #
 # region history
 #__________________________________________________________________________________________________
+@login_required
 def history(request):
     prediction_history = PredictionHistory.objects.all().order_by('date')
     return render(request, 'films/history.html', {
@@ -148,35 +183,18 @@ def history(request):
         'active_tab': 'history'
     })
 
-#__________________________________________________________________________________________________
-#
-# region financials
-#__________________________________________________________________________________________________
-def financials(request):
-    weekly_revenue = 9000
-    weekly_costs = 4900
-    weekly_profit = weekly_revenue - weekly_costs
-    occupancy_rate = 85
-    
-    metrics = {
-        'weekly_revenue': weekly_revenue,
-        'weekly_profit': weekly_profit,
-        'occupancy_rate': occupancy_rate,
-        'weekly_costs': weekly_costs
-    }
-    
-    return render(request, 'films/financials.html', {
-        'metrics': metrics,
-        'active_tab': 'financials'
-    })
 
 #__________________________________________________________________________________________________
 #
 # region settings / import_csv
 #__________________________________________________________________________________________________
+@login_required
 def settings(request):
-    return render(request, 'films/settings.html')
+    return render(request, 'films/settings.html', {
+        'active_tab': 'settings'
+    })
 
+@login_required
 def import_csv(request):
     if request.method == 'POST' and request.FILES.get('csv_file'):
         try:
@@ -184,7 +202,9 @@ def import_csv(request):
             csv_file = request.FILES['csv_file']
             if not csv_file.name.endswith('.csv'):
                 messages.error(request, "Invalid file type. Please upload a CSV file.")
-                return render(request, 'films/settings.html')
+                return render(request, 'films/settings.html',  {
+                    'active_tab': 'settings'
+                })
 
             # Stocker temporairement le fichier CSV
             fs = FileSystemStorage()
@@ -195,7 +215,9 @@ def import_csv(request):
             # Vérification si le fichier existe
             if not os.path.exists(file_path):
                 messages.error(request, "File not found.")
-                return render(request, 'films/settings.html')
+                return render(request, 'films/settings.html',  {
+                    'active_tab': 'settings'
+                })
 
             # Lire le fichier CSV et remplir la base de données
             with open(file_path, newline='', encoding='utf-8') as file:
@@ -216,11 +238,15 @@ def import_csv(request):
 
             # Afficher un message de succès
             messages.success(request, f"{movie_count} movies successfully imported.")
-            return render(request, 'films/settings.html')
+            return render(request, 'films/settings.html',  {
+                'active_tab': 'settings'
+            })
 
         except Exception as e:
             messages.error(request, f"Error: {str(e)}")
-            return render(request, 'films/settings.html')
+            return render(request, 'films/settings.html',  {
+                'active_tab': 'settings'
+            })
 
         finally:
             # Supprimer le fichier temporaire s'il existe
@@ -228,21 +254,182 @@ def import_csv(request):
                 os.remove(file_path)
                 print(f"Temporary file deleted: {file_path}")
 
-    return render(request, 'films/settings.html')
+    return render(request, 'films/settings.html',  {
+        'active_tab': 'settings'
+    })
 
-
+#__________________________________________________________________________________________________
+#
+# region setings / update_data
+#__________________________________________________________________________________________________
+from .utils import CustomDate
+from .business.prediction_utils import create_or_update_prediction
 from azure_blob_getter import AzureBlobStorageGetter
+@login_required
 def update_data(request):
     """
-        don't forget : pip install azure-storage-blob 
+    Mise à jour des films depuis Azure Blob et prédiction via API pour les films importés uniquement.
     """
     if request.method == 'POST':
-        
-        azure_blob_getter = AzureBlobStorageGetter()
-        dataframe = azure_blob_getter.get_storage_content()
-        messages.success(request, 'Bonne nouvelle')
-        
+        try:
+            azure_blob_getter = AzureBlobStorageGetter()
+            dataframe = azure_blob_getter.get_storage_content()
 
-    return render(request, 'films/settings.html')
+            if dataframe is None or dataframe.empty:
+                messages.error(request, '❌ Le fichier récupéré est vide ou non lisible.')
+                logger.warning("DataFrame vide ou None après lecture du blob Azure.")
+                return render(request, 'films/settings.html', {
+                    'active_tab': 'settings'
+                })
 
-   
+            # Importation dans la base et récupération des films importés
+            logs, created_movies = process_movies_dataframe(dataframe)
+
+            success_count = sum(1 for log in logs if log.startswith("✅"))
+            error_count = len(logs) - success_count
+
+            for log_entry in logs:
+                logger.info(log_entry)
+
+            # On récupère les films importés, supposant qu'ils sont dans le DataFrame
+            #imported_movies = Movie.objects.filter(title__in=[log.split("✅")[1].strip() for log in logs if log.startswith("✅")])
+
+            # normalement ça devrait être 
+            # fastapi_url="http://film-prediction-api.francecentral.azurecontainer.io:8000/predict"
+            fastapi_url = os.getenv("FASTAPI_URL")
+            fastapi_url2 = os.getenv("FASTAPI_URL2")
+            # Lancement des prédictions pour les films importés uniquement
+            for movie_data in created_movies:
+                logger.info(f"✅ Prédiction enregistrée pour prediction fastapi")
+                try:
+                    # Création du payload avec les données du film
+                    payload = {
+                        "film_title": movie_data["title"],
+                        "release_date": movie_data["release_date"],
+                        "duration": movie_data["duration"],
+                        "age_classification": movie_data["age_classification"],
+                        "producers": movie_data["producers"],
+                        "director": movie_data["director"],
+                        "top_stars": movie_data["top_stars"],
+                        "languages": movie_data["languages"],
+                        "distributor": movie_data["distributor"],
+                        "year_of_production": movie_data["year_of_production"],
+                        "film_nationality": movie_data["film_nationality"],
+                        "filming_secrets": movie_data["filming_secrets"],
+                        "awards": movie_data["awards"],
+                        "associated_genres": movie_data["associated_genres"],
+                        "broadcast_category": movie_data["broadcast_category"],
+                        "trailer_views": movie_data["trailer_views"],
+                        "synopsis": movie_data["synopsis"]
+                    }
+                    logger.info(f"✅ Prédiction enregistrée pour prediction fastapi")
+
+                     # ✅ Affichage du payload
+                    logger.info(f"📦 Payload envoyé : {payload}")
+
+                  
+ 
+                    # Envoi de la requête POST vers l'API de prédiction
+                    response = requests.post(
+                        fastapi_url, 
+                        json=payload,  # Envoi du payload au format JSON
+                        timeout=10
+                    )
+
+                     # Envoi de la requête POST vers l'API de prédiction
+                    response2 = requests.post(
+                        fastapi_url2, 
+                        json=payload,  # Envoi du payload au format JSON
+                        timeout=10
+                    )
+
+                    #response.raise_for_status()  # Soulever une exception si la réponse est une erreur HTTP
+                    #logger.info(f"📊 Résultat de la prédiction : {response.status_code }")
+                    if response.status_code == 200:
+                        prediction_data = response.json()
+                        logger.info(f"📊 Résultat de la prédiction : {prediction_data}")
+
+                    if response2.status_code == 200:
+                        prediction_data2 = response2.json()
+                        logger.info(f"📊 Résultat de la prédiction : {prediction_data2}")
+                    # Sauvegarde de la prédiction dans la base de données
+                    try:
+                        
+                        movie_title = movie_data["title"]
+                        movie_date = CustomDate().parse_french_date(movie_data["release_date"])
+
+                        movie_obj = Movie.objects.filter(title=movie_title, release_date_fr=movie_date).first()
+                        movie_id = movie_obj.id
+
+                        tmp_prediction1 = int(prediction_data.get("Predictions", [0])[0])
+                        tmp_prediction2 = int(prediction_data2.get("Predictions", [0])[0])
+                        
+                        if(tmp_prediction1 >= tmp_prediction2):
+                            tmp_prediction = tmp_prediction1
+                        else:
+                            tmp_prediction = tmp_prediction2
+                        
+                        if tmp_prediction < 0:
+                            tmp_prediction = -1 * tmp_prediction
+
+                        first_week_predicted_entries_france = tmp_prediction
+
+                        prediction_deviation = 0 # haaaaaaaaannnn c'est maaaal !
+                        model_version=int(prediction_data.get("version", 0))
+                        date_prediction=dt.datetime.now().date()
+
+                        prediction_history = create_or_update_prediction(movie_id, first_week_predicted_entries_france, prediction_deviation, model_version, date_prediction)
+                        
+                        logger.info(f"✅ Prédiction enregistrée pour {movie_data["title"]}")
+                    except Movie.DoesNotExist:
+                        print(f"Aucun film trouvé avec le titre : {movie_title}")
+
+                except Exception as prediction_error:
+                    logger.warning(f"❌ Échec de la prédiction: {prediction_error}")
+
+            messages.success(request, f"{success_count} films importés, {error_count} erreurs. Prédictions générées pour les films importés.")
+
+        except Exception as e:
+            messages.error(request, f"Erreur globale : {str(e)}")
+            logger.exception("❌ Erreur critique lors de l'importation ou de la prédiction.")
+
+    return render(request, 'films/settings.html', {
+        'active_tab': 'settings'
+    })
+
+
+#__________________________________________________________________________________________________
+#
+# Authentification
+#__________________________________________________________________________________________________
+
+class CustomLoginView(LoginView):
+    template_name = 'films/login.html'
+
+"""class CustomLogoutView(LogoutView):
+    template_name = 'films/logout.html'
+
+    def get_next_page(self):
+        # Redirige l'utilisateur vers la page de connexion ou une autre page
+        return reverse_lazy('login')"""
+
+from django.contrib.auth import logout
+from django.shortcuts import redirect
+
+@login_required
+def custom_logout(request):
+    logout(request)
+    return redirect('login')  # Redirection vers la page de connexion
+
+#__________________________________________________________________________________________________
+#
+# Register
+#__________________________________________________________________________________________________
+from django.contrib.auth.forms import UserCreationForm
+from django.urls import reverse_lazy
+from django.views import generic
+
+class RegisterView(generic.CreateView):
+    form_class = UserCreationForm
+    template_name = 'films/register.html'
+    success_url = reverse_lazy('login')  # Après inscription, redirige vers la page de login
