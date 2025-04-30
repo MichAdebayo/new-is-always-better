@@ -16,6 +16,7 @@ from django.contrib.auth.decorators import login_required
 from .models import Movie, PredictionHistory, INITIAL_DATE_FORMAT_STRING
 from .business.broadcast_utils import get_start_wednesday, get_or_create_broadcast
 from .business.movie_list_utils import get_week_movies
+from .business.prediction_utils import get_prediction_display_per_week
 
 from .data_importer import DataImporter
 from .utils import process_movies_dataframe
@@ -74,7 +75,7 @@ def top_ten_list(request):
             # else :  #unused : the prediction are allredy present in database
             movie.last_prediction = 0
         else :
-            movie.last_prediction = prediction_history.first_week_predicted_entries_france
+            movie.last_prediction = round(get_prediction_display_per_week(prediction_history.first_week_predicted_entries_france))
 
     top_movies = sorted(next_week_movies, key=lambda x: x.last_prediction, reverse=True)
 
@@ -88,6 +89,7 @@ def top_ten_list(request):
 #
 # region update_top_ten_list
 #__________________________________________________________________________________________________
+@login_required
 @require_POST
 def update_top_ten_list(request):
 
@@ -145,7 +147,7 @@ def update_top_ten_list(request):
         if not prediction_history :
             movie.last_prediction = 0
         else :
-            movie.last_prediction = prediction_history.first_week_predicted_entries_france
+            movie.last_prediction = round(get_prediction_display_per_week(prediction_history.first_week_predicted_entries_france))
 
     top_movies = sorted(next_week_movies, key=lambda x: x.last_prediction, reverse=True)
 
