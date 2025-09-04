@@ -7,7 +7,6 @@
 ## Project Overview
 **New Is Always Better** is a decision-making tool designed for a cinema manager aiming to optimize the selection of films to screen. This cinema follows a unique policy: only screening new releases during their first week, with weekly updates every Wednesday. The cinema has two screening rooms (with capacities of 120 and 80 seats), and the tool's goal is to predict the potential audience for upcoming films to maximize revenue.
 
----
 
 ## Global Architecture
 
@@ -18,7 +17,7 @@ The project is organized into microservices:
 - **Transactional Database:** Stores application data (SQLite).
 - **Analytical Database:** Stores data for the ML model (Azure Blob Storage).
 
----
+
 
 
 ## Part 1: Prediction API (FastAPI)
@@ -121,7 +120,7 @@ docker build -t film-prediction-api .
 docker run -d -p 8000:8000 film-prediction-api
 ```
 
----
+
 
 ## Part 2: Web Application (Django)
 
@@ -195,7 +194,6 @@ docker build -t new-is-always-better-django .
 docker run -d -p 8000:8000 new-is-always-better-django
 ```
 
----
 
 ## Full Project Deployment with Docker Compose
 
@@ -232,7 +230,7 @@ services:
     restart: always
 ```
 
----
+
 
 ## Usage
 
@@ -243,14 +241,14 @@ services:
 5. Analyze financial performance in the "Financial Analysis" tab.
 6. Import new data via the "Settings" tab.
 
----
+
 
 ## Maintenance and Updates
 
 - **Model Updates:** Regularly update the prediction model.
 - **Data Updates:** Use the "Settings" tab to update data manually or via Azure Blob Storage.
 
----
+
 
 ## About the Project
 This project was developed as part of a mission for an IT consulting firm, following the agile SCRUM methodology with a team of four AI developers. It aims to help cinema managers optimize film selection to maximize revenue.
